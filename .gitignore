@@ -1,3 +1,7 @@
+# project files
+*.dsk
+dsk_test
+
 # Prerequisites
 *.d
 

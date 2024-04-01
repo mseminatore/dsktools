@@ -1,16 +1,19 @@
-TARGET = dsk
-DEPS	= 
+# get arch name
+ARCH = $(shell uname -m)
+TARGET = dsk_test
+DEPS	= dsk.h
 OBJS	= dsk.o
 CFLAGS	= -I. -g -Wall
-LIBS	= -lm
+LIBNAME = libdsk.a
+LFLAGS += -L. -ldsk -lm
 
-all: $(TARGET)
+all: $(LIBNAME) $(TARGET)
+	
+$(LIBNAME): $(OBJS)
+	ar rcs $(LIBNAME) $(OBJS)
 
-$(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
-
-#as09.o:	as09.tab.c
-#	$(CC) $(CFLAGS) -c -o $@ $<
+$(TARGET): $(OBJS) main.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
 
 clean:
-	rm $(TARGET) $(OBJS) *.o
+	rm $(TARGET) $(LIBNAME) $(OBJS) *.o
