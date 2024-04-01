@@ -5,11 +5,15 @@
 //
 int main(int argc, char *argv[])
 {
+    DSK_Drive *drv;
+
     assert(sizeof(DSK_DirEntry) == 32);
 
-    dsk_mount_drive(argv[1]);
+    drv = dsk_mount_drive(argv[1]);
 
-    // dir();
+    // dsk_granule_map(drv);
 
-    dsk_unload_drive();
+    dsk_dir(drv);
+
+    dsk_unload_drive(drv);
 }
