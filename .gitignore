@@ -2,6 +2,7 @@
 *.dsk
 dsktools
 *.bin
+.DS_Store
 
 # Prerequisites
 *.d
