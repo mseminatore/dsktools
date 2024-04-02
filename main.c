@@ -46,8 +46,8 @@ int dir_fn(DSK_Drive *drv, void *params)
 //---------------------------------
 int mount_fn(DSK_Drive *drv, void *params)
 {
-    char* tok = strtok(NULL, " \n");
-    if (!tok)
+    char* filename = strtok(NULL, " \n");
+    if (!filename)
     {
         puts("missing filename");
         return FALSE;
@@ -57,10 +57,10 @@ int mount_fn(DSK_Drive *drv, void *params)
     if (g_drv)
         dsk_unload_drive(g_drv);
 
-    g_drv = dsk_mount_drive(tok);
+    g_drv = dsk_mount_drive(filename);
     if (!g_drv)
     {
-        printf("unable to mount %s\n", tok);
+        printf("unable to mount %s\n", filename);
         return FALSE;
     }
 
@@ -114,9 +114,43 @@ int free_fn(DSK_Drive *drv, void *params)
 //---------------------------------
 //
 //---------------------------------
+int add_fn(DSK_Drive *drv, void *params)
+{
+    char* filename = strtok(NULL, " \n");
+    if (!filename)
+    {
+        puts("missing filename");
+        return FALSE;
+    }
+
+    dsk_add_file(drv, filename);
+    return TRUE;
+}
+
+//---------------------------------
+//
+//---------------------------------
+int extract_fn(DSK_Drive *drv, void *params)
+{
+    char* filename = strtok(NULL, " \n");
+    if (!filename)
+    {
+        puts("missing filename");
+        return FALSE;
+    }
+
+    dsk_extract_file(drv, filename);
+    return FALSE;
+}
+
+//---------------------------------
+//
+//---------------------------------
 Command cmds[] =
 {
+    {"add", add_fn, "add file to DSK"},
     {"dir", dir_fn, "list directory contents", 0},
+    {"extract", extract_fn, "extract file from DSK"},
     {"free", free_fn, "free space on drive", 0},
     {"grans", gran_map_fn, "show granule map", 0},
     {"help", help_fn, "list commands", 0},

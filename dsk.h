@@ -98,5 +98,7 @@ int dsk_dir(DSK_Drive *drv);
 int dsk_granule_map(DSK_Drive *drv);
 int dsk_free_bytes(DSK_Drive *drv);
 int dsk_free_granules(DSK_Drive *drv);
+int dsk_add_file(DSK_Drive *drv, const char *filename);
+int dsk_extract_file(DSK_Drive *drv, const char *filename);
 
 #endif  // __DSK_H

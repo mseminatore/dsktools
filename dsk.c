@@ -272,3 +272,65 @@ int dsk_unload_drive(DSK_Drive *drv)
 
     return E_OK;
 }
+
+//------------------------------------
+// unmount a DSK file
+//------------------------------------
+int dsk_add_file(DSK_Drive *drv, const char *filename)
+{
+    assert(drv && drv->fp);
+    if (!drv || !drv->fp)
+    {
+        puts("disk invalid");
+        return E_FAIL;
+    }
+
+    return E_OK;
+}
+
+//------------------------------------
+// unmount a DSK file
+//------------------------------------
+int dsk_extract_file(DSK_Drive *drv, const char *filename)
+{
+    char dirfile[DSK_MAX_FILENAME + DSK_MAX_EXT + 2];
+
+    assert(drv && drv->fp);
+    if (!drv || !drv->fp)
+    {
+        puts("disk invalid.");
+        return E_FAIL;
+    }
+
+    // find dir entry
+    for (int i = 0; i < DSK_MAX_DIR_ENTRIES; i++)
+    {
+        DSK_DirEntry *dirent = &drv->dirs[i];
+
+        if (dirent->filename[0] == DSK_DIRENT_DELETED || DSK_DIRENT_FREE == (uint8_t)dirent->filename[0])
+            continue;
+
+        strncpy(dirfile, dirent->filename, DSK_MAX_FILENAME);
+        strcat(dirfile, ".");
+        strncat(dirfile, dirent->ext, DSK_MAX_EXT);
+
+printf("Comparing %s to %s\n", dirfile, filename);
+
+        if (!strcmp(filename, dirfile))
+            printf("Found a match!");
+    }
+
+    // open the output file
+    FILE *fout = fopen(filename, "wb");
+    if (!fout)
+    {
+        puts("file not found.");
+        return E_FAIL;
+    }
+
+    // walk the granules
+
+    fclose(fout);
+
+    return E_OK;
+}
