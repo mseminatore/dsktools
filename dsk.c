@@ -118,7 +118,9 @@ static int file_size(DSK_Drive *drv, DSK_DirEntry *dirent)
     int grans = count_granules(drv, dirent->first_granule, &sectors);
 
     // add in bytes in last sector
-    int size = grans * BYTES_PER_GRANULE + sectors * BYTES_DATA_PER_SECTOR + dirent->bytes_in_last_sector;
+    int size = (grans-1) * BYTES_PER_GRANULE + (sectors-1) * BYTES_DATA_PER_SECTOR + dirent->bytes_in_last_sector;
+// printf("%d grans, %d sectors, %d bytes\n", grans, sectors, dirent->bytes_in_last_sector);
+
     return size;
 }
 
@@ -150,8 +152,12 @@ int dsk_dir(DSK_Drive *drv)
             strncpy(ext, dirent->ext, DSK_MAX_EXT);
 
             int grans = count_granules(drv, dirent->first_granule, NULL);
+#if 1
+            printf("%8s %3s\t%d %c %d\n", file, ext, dirent->type, dirent->binary_ascii == 0? 'B' : 'A', grans);
+#else
             printf("%8s %3s\t%d %c %d %d\n", file, ext, dirent->type, dirent->binary_ascii == 0? 'B' : 'A', grans, file_size(drv, dirent));
-            // granule_chain(drv, dirent);
+            granule_chain(drv, dirent);
+#endif
         }
     }
 
@@ -233,6 +239,10 @@ DSK_Drive *dsk_mount_drive(const char *filename)
     // read in the directory
     dsk_seek_drive(drv, DSK_DIR_TRACK, DSK_DIRECTORY_SECTOR);
     fread(&drv->dirs, sizeof(DSK_DirEntry), DSK_MAX_DIR_ENTRIES, drv->fp);
+
+    // fixup endianess
+    for (int i = 0; i < DSK_MAX_DIR_ENTRIES; i++)
+        drv->dirs[i].bytes_in_last_sector = ntohs(drv->dirs[i].bytes_in_last_sector);
 
     drv->drv_status = DSK_MOUNTED;
 
