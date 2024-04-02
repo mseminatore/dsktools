@@ -228,7 +228,7 @@ DSK_Drive *dsk_mount_drive(const char *filename)
     if (!drv)
         return NULL;
 
-    drv->fp = fopen(filename, "rb");
+    drv->fp = fopen(filename, "r+b");
     if (!drv->fp)
     {
         printf("Disk (%s) not found.\n", filename);
@@ -274,7 +274,7 @@ int dsk_unload_drive(DSK_Drive *drv)
 }
 
 //------------------------------------
-// unmount a DSK file
+// add file to a mounted DSK file
 //------------------------------------
 int dsk_add_file(DSK_Drive *drv, const char *filename)
 {
@@ -384,6 +384,56 @@ printf("extracting granule %2X\n", gran);
     // write out partial sector
 
     fclose(fout);
+
+    return E_OK;
+}
+
+//------------------------------------
+// create a new DSK file
+//------------------------------------
+int dsk_new(const char *filename)
+{
+    return E_OK;
+}
+
+//------------------------------------
+// write the FAT and DIR to the DSK
+//------------------------------------
+int dsk_flush(DSK_Drive *drv)
+{
+    assert(drv && drv->fp);
+    if (!drv || !drv->fp)
+    {
+        puts("disk invalid.");
+        return E_FAIL;
+    }
+
+    return E_OK;
+}
+
+//------------------------------------
+// format a mounted drive
+//------------------------------------
+int dsk_format(DSK_Drive *drv)
+{
+    uint8_t val = DSK_GRANULE_FREE;
+
+    assert(drv && drv->fp);
+    if (!drv || !drv->fp)
+    {
+        puts("disk invalid.");
+        return E_FAIL;
+    }
+
+    // clear FAT granule entries
+    dsk_seek_drive(drv, DSK_DIR_TRACK, DSK_FAT_SECTOR);
+    // TODO - clear FAT in drv and then write the FAT
+    fwrite(&val, sizeof(val), TOTAL_GRANULES, drv->fp);
+
+    // clear Directory entries
+    dsk_seek_drive(drv, DSK_DIR_TRACK, DSK_DIRECTORY_SECTOR);
+    // TODO - clear dir entries in drv and then write the DIR
+//    fwrite(&val)
 
     return E_OK;
 }
