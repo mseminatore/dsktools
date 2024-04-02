@@ -270,7 +270,9 @@ int dsk_unload_drive(DSK_Drive *drv)
     // ensure any changes are written!
     dsk_flush(drv);
 
+    fflush(drv->fp);
     fclose(drv->fp);
+    
     drv->fp = NULL;
     drv->drv_status = DSK_UNMOUNTED;
     free(drv);
@@ -440,8 +442,9 @@ DSK_Drive *dsk_new(const char *filename)
     }
 
     // write out empty DSK
-    fwrite(&zero, sizeof(zero), DSK_TOTAL_SIZE, fout);
-printf("writing out blank DSK with %d bytes\n", DSK_TOTAL_SIZE);
+    size_t written = fwrite(&zero, sizeof(uint8_t), DSK_TOTAL_SIZE, fout);
+printf("writing out blank DSK with %d bytes, %ld bytes written\n", DSK_TOTAL_SIZE, written);
+    fflush(fout);
     fclose(fout);
 exit(0);
 
@@ -485,6 +488,8 @@ int dsk_flush(DSK_Drive *drv)
     // write out the Directory
     dsk_seek_drive(drv, DSK_DIR_TRACK, DSK_DIRECTORY_SECTOR);
     fwrite(drv->dirs, sizeof(DSK_DirEntry), DSK_MAX_DIR_ENTRIES, drv->fp);
+
+    fflush(drv->fp);
 
     drv->dirty_flag = 0;
 
