@@ -159,17 +159,8 @@ Command cmds[] =
     {"q", quit_fn , "quit app", 1},
     {"quit", quit_fn , "quit app", 0},
  
-    // {"r", print_regs_fn },
-    // {"s", step_fn },
-    // {"g", run_fn },
-    // {"m", dump_mem_fn},
-    // {"db", dump_byte_fn},
-    // {"dw", dump_word_fn},
-    // {"f", fill_mem_fn},
-    // {"d", disasm_fn},
-
-    // {"l", load_mem_fn},
-    // {"w", write_mem_fn},
+    // {"new", new_fn, "create new DSK"},
+    // {"format", format_fn, "format DSK"},
 
     { NULL, NULL , NULL}
 };
