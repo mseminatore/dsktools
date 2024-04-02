@@ -33,48 +33,6 @@ static int count_granules(DSK_Drive *drv, int gran, int *tail_sectors)
 }
 
 //----------------------------------------
-// count free granules on drive
-//----------------------------------------
-static int free_granules(DSK_Drive *drv)
-{
-    int count = 0;
-
-    assert(drv && drv->fp);
-
-    if (!drv || !drv->fp)
-    {
-        puts("disk invalid");
-        return E_FAIL;
-    }
-
-    for (int i = 0; i < TOTAL_GRANULES; i++)
-    {
-        if (drv->fat.granule_map[i] == DSK_GRANULE_FREE)
-            count++;
-    }
-
-    return count;
-}
-
-//----------------------------------------
-// calc free bytes on drive
-//----------------------------------------
-static int free_bytes(DSK_Drive *drv)
-{
-    assert(drv && drv->fp);
-
-    if (!drv || !drv->fp)
-    {
-        puts("disk invalid");
-        return E_FAIL;
-    }
-
-    int grans = free_granules(drv);
-    int count = grans * BYTES_PER_GRANULE;
-    return count;
-}
-
-//----------------------------------------
 // walk and print the granule chain in the FAT
 //----------------------------------------
 static int granule_chain(DSK_Drive *drv, DSK_DirEntry *dirent)
@@ -125,6 +83,48 @@ static int file_size(DSK_Drive *drv, DSK_DirEntry *dirent)
 }
 
 //----------------------------------------
+// count free granules on drive
+//----------------------------------------
+int dsk_free_granules(DSK_Drive *drv)
+{
+    int count = 0;
+
+    assert(drv && drv->fp);
+
+    if (!drv || !drv->fp)
+    {
+        puts("disk invalid");
+        return E_FAIL;
+    }
+
+    for (int i = 0; i < TOTAL_GRANULES; i++)
+    {
+        if (drv->fat.granule_map[i] == DSK_GRANULE_FREE)
+            count++;
+    }
+
+    return count;
+}
+
+//----------------------------------------
+// calc free bytes on drive
+//----------------------------------------
+int dsk_free_bytes(DSK_Drive *drv)
+{
+    assert(drv && drv->fp);
+
+    if (!drv || !drv->fp)
+    {
+        puts("disk invalid");
+        return E_FAIL;
+    }
+
+    int grans = dsk_free_granules(drv);
+    int count = grans * BYTES_PER_GRANULE;
+    return count;
+}
+
+//----------------------------------------
 // print a directory of the mounted drive
 //----------------------------------------
 int dsk_dir(DSK_Drive *drv)
@@ -141,6 +141,8 @@ int dsk_dir(DSK_Drive *drv)
 
     memset(file, 0, sizeof(file));
     memset(ext, 0, sizeof(ext));
+
+    puts("");
 
     for (int i = 0; i < DSK_MAX_DIR_ENTRIES; i++)
     {
@@ -161,7 +163,7 @@ int dsk_dir(DSK_Drive *drv)
         }
     }
 
-    printf("%d bytes (%d granules) free.\n", free_bytes(drv), free_granules(drv));
+    printf("\n%d bytes (%d granules) free.\n", dsk_free_bytes(drv), dsk_free_granules(drv));
 
     return E_OK;
 }
@@ -202,9 +204,11 @@ int dsk_granule_map(DSK_Drive *drv)
     }
 
     // print FAT
-    for (int i = 0; i < TOTAL_GRANULES; i++)
+    for (int i = 1; i <= TOTAL_GRANULES; i++)
     {
-        printf("%02X ", drv->fat.granule_map[i]);
+        printf("%02X ", drv->fat.granule_map[i-1]);
+        if (0 == (i%24))
+            puts("");
     }
 
     puts("");

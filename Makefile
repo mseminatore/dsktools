@@ -1,6 +1,6 @@
 # get arch name
 ARCH = $(shell uname -m)
-TARGET = dsk_test
+TARGET = dsk_tools
 DEPS	= dsk.h
 OBJS	= dsk.o
 CFLAGS	= -I. -g -Wall
