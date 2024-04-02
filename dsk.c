@@ -154,7 +154,7 @@ int dsk_dir(DSK_Drive *drv)
             strncpy(ext, dirent->ext, DSK_MAX_EXT);
 
             int grans = count_granules(drv, dirent->first_granule, NULL);
-#if 1
+#if 0
             printf("%8s %3s\t%d %c %d\n", file, ext, dirent->type, dirent->binary_ascii == 0? 'B' : 'A', grans);
 #else
             printf("%8s %3s\t%d %c %d %d\n", file, ext, dirent->type, dirent->binary_ascii == 0? 'B' : 'A', grans, file_size(drv, dirent));
@@ -184,7 +184,7 @@ int dsk_seek_drive(DSK_Drive *drv, int track, int sector)
     }
 
     long offset = DSK_OFFSET(track, sector);
-// printf("seeking to track %d, sector %d, offset is %lX\n", track, sector, offset);
+printf("seeking to track %d, sector %d, offset is %lX\n", track, sector, offset);
 
     fseek(drv->fp, offset, SEEK_SET);
 
@@ -288,19 +288,26 @@ int dsk_add_file(DSK_Drive *drv, const char *filename)
     return E_OK;
 }
 
-//------------------------------------
-// unmount a DSK file
-//------------------------------------
-int dsk_extract_file(DSK_Drive *drv, const char *filename)
+//
+static char *file_ncopy(char *dst, char *src, int n)
+{
+    while (n--)
+    {
+        if (*src == ' ' || *src == 0)
+            break;
+
+        *dst++ = *src++;
+    }
+    
+    *dst =0;
+
+    return dst;
+}
+
+//
+static DSK_DirEntry *find_file_dir(DSK_Drive *drv, const char *filename)
 {
     char dirfile[DSK_MAX_FILENAME + DSK_MAX_EXT + 2];
-
-    assert(drv && drv->fp);
-    if (!drv || !drv->fp)
-    {
-        puts("disk invalid.");
-        return E_FAIL;
-    }
 
     // find dir entry
     for (int i = 0; i < DSK_MAX_DIR_ENTRIES; i++)
@@ -310,14 +317,36 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
         if (dirent->filename[0] == DSK_DIRENT_DELETED || DSK_DIRENT_FREE == (uint8_t)dirent->filename[0])
             continue;
 
-        strncpy(dirfile, dirent->filename, DSK_MAX_FILENAME);
+        file_ncopy(dirfile, dirent->filename, DSK_MAX_FILENAME);
         strcat(dirfile, ".");
         strncat(dirfile, dirent->ext, DSK_MAX_EXT);
 
-printf("Comparing %s to %s\n", dirfile, filename);
+        if (!strcasecmp(filename, dirfile))
+            return dirent;
+    }
 
-        if (!strcmp(filename, dirfile))
-            printf("Found a match!");
+    return NULL;
+}
+
+//------------------------------------
+// unmount a DSK file
+//------------------------------------
+int dsk_extract_file(DSK_Drive *drv, const char *filename)
+{
+    char sector_data[256];
+
+    assert(drv && drv->fp);
+    if (!drv || !drv->fp)
+    {
+        puts("disk invalid.");
+        return E_FAIL;
+    }
+
+    DSK_DirEntry *dirent = find_file_dir(drv, filename);
+    if (!dirent)
+    {
+        puts("file not found.");
+        return E_FAIL;
     }
 
     // open the output file
@@ -329,6 +358,30 @@ printf("Comparing %s to %s\n", dirfile, filename);
     }
 
     // walk the granules
+    int gran = dirent->first_granule;
+
+    // write out full granules    
+    while(gran < 0xC0)
+    {
+        int track = gran / GRANULES_PER_TRACK;
+        int granule_half = gran % GRANULES_PER_TRACK;
+        int sector = 1 + (gran % GRANULES_PER_TRACK) * SECTORS_PER_GRANULE;
+printf("t: %d, s: %d\n", track, sector);
+        dsk_seek_drive(drv, track, sector);
+
+printf("extracting granule %2X\n", gran);
+        for (int i = 0; i < 9; i++)
+        {
+            fread(sector_data, BYTES_DATA_PER_SECTOR, 1, drv->fp);
+            fwrite(sector_data, BYTES_DATA_PER_SECTOR, 1, fout);
+        }
+
+        // get next granule
+        gran = drv->fat.granule_map[gran];
+    }
+
+    // write out partial granule
+    // write out partial sector
 
     fclose(fout);
 

@@ -1,6 +1,7 @@
 # project files
 *.dsk
-dsk_tools
+dsktools
+*.bin
 
 # Prerequisites
 *.d

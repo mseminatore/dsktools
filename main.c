@@ -140,7 +140,7 @@ int extract_fn(DSK_Drive *drv, void *params)
     }
 
     dsk_extract_file(drv, filename);
-    return FALSE;
+    return TRUE;
 }
 
 //---------------------------------
