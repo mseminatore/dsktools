@@ -144,7 +144,7 @@ int extract_fn(DSK_Drive *drv, void *params)
 }
 
 //---------------------------------
-//
+// create a new DSK file
 //---------------------------------
 int new_fn(DSK_Drive *drv, void *params)
 {
@@ -155,26 +155,57 @@ int new_fn(DSK_Drive *drv, void *params)
         return FALSE;
     }
 
-    dsk_new(filename);
+    // unmount current DSK
+    if (drv)
+        dsk_unload_drive(drv);
+    
+    g_drv = dsk_new(filename);
 
     return TRUE;
 }
 
 //---------------------------------
-//
+// format the mounted DSK file
+//---------------------------------
+int format_fn(DSK_Drive *drv, void *params)
+{
+    dsk_format(drv);
+
+    return TRUE;
+}
+
+//---------------------------------
+// delete file from DSK file
+//---------------------------------
+int del_fn(DSK_Drive *drv, void *params)
+{
+    char* filename = strtok(NULL, " \n");
+    if (!filename)
+    {
+        puts("missing filename");
+        return FALSE;
+    }
+
+    dsk_del(drv, filename);
+
+    return TRUE;
+}
+
+//---------------------------------
+// command table
 //---------------------------------
 Command cmds[] =
 {
     {"add", add_fn, "add file to DSK", 0},
-    // {"del", del_fn, "delete file from DSK", 0},
+    {"del", del_fn, "delete file from DSK", 0},
     {"dir", dir_fn, "list directory contents", 0},
     {"extract", extract_fn, "extract file from DSK"},
-     // {"format", format_fn, "format DSK"},
-   {"free", free_fn, "free space on drive", 0},
+    {"format", format_fn, "format DSK"},
+    {"free", free_fn, "free space on drive", 0},
     {"grans", gran_map_fn, "show granule map", 0},
     {"help", help_fn, "list commands", 0},
     {"mount", mount_fn, "mount a DSK file", 0},
-    // {"new", new_fn, "create new DSK"},
+    {"new", new_fn, "create new DSK"},
     {"unmount", unmount_fn, "unmount current DSK file", 0},
     {"q", quit_fn , "quit app", 1},
     {"quit", quit_fn , "quit app", 0},

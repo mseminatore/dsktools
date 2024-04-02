@@ -6,23 +6,24 @@
 //------------------------------------
 // DSK Drive properties
 //------------------------------------
-#define NUM_TRACKS              35
-#define SECTORS_PER_TRACK       18
-#define BYTES_DATA_PER_SECTOR   256
-#define BYTES_DATA_PER_TRACK    (SECTORS_PER_TRACK * BYTES_DATA_PER_SECTOR)
-#define DSK_DIR_TRACK           17
-#define DSK_FAT_SECTOR          2
-#define DSK_DIRECTORY_SECTOR    3
-#define GRANULES_PER_TRACK      2
-#define SECTORS_PER_GRANULE     (SECTORS_PER_TRACK / GRANULES_PER_TRACK)
-#define BYTES_PER_GRANULE       (SECTORS_PER_GRANULE * BYTES_DATA_PER_SECTOR)
-#define TOTAL_GRANULES          ((NUM_TRACKS - 1) * GRANULES_PER_TRACK)
-#define DSK_MAX_FILENAME        8
-#define DSK_MAX_EXT             3
-#define DSK_MAX_DIR_ENTRIES     72
-#define DSK_DIRENT_FREE         0xFF
-#define DSK_DIRENT_DELETED      0
-#define DSK_GRANULE_FREE        0xFF
+#define DSK_NUM_TRACKS              35
+#define DSK_SECTORS_PER_TRACK       18
+#define DSK_BYTES_DATA_PER_SECTOR   256
+#define DSK_BYTES_DATA_PER_TRACK    (DSK_SECTORS_PER_TRACK * DSK_BYTES_DATA_PER_SECTOR)
+#define DSK_DIR_TRACK               17
+#define DSK_FAT_SECTOR              2
+#define DSK_DIRECTORY_SECTOR        3
+#define DSK_GRANULES_PER_TRACK      2
+#define DSK_SECTORS_PER_GRANULE     (DSK_SECTORS_PER_TRACK / DSK_GRANULES_PER_TRACK)
+#define DSK_BYTES_PER_GRANULE       (DSK_SECTORS_PER_GRANULE * DSK_BYTES_DATA_PER_SECTOR)
+#define DSK_TOTAL_GRANULES          ((DSK_NUM_TRACKS - 1) * DSK_GRANULES_PER_TRACK)
+#define DSK_MAX_FILENAME            8
+#define DSK_MAX_EXT                 3
+#define DSK_MAX_DIR_ENTRIES         72
+#define DSK_DIRENT_FREE             0xFF
+#define DSK_DIRENT_DELETED          0
+#define DSK_GRANULE_FREE            0xFF
+#define DSK_TOTAL_SIZE              (DSK_NUM_TRACKS * DSK_SECTORS_PER_TRACK * DSK_BYTES_DATA_PER_SECTOR)
 
 // error return codes
 #ifndef E_OK
@@ -34,10 +35,10 @@
 #endif
 
 // offset in DSK to start of track t
-#define DSK_TRACK_OFFSET(t) ((t) * BYTES_DATA_PER_TRACK)
+#define DSK_TRACK_OFFSET(t) ((t) * DSK_BYTES_DATA_PER_TRACK)
 
 // offset in track to start of sector s
-#define DSK_SECTOR_OFFSET(s) (((s) - 1) * BYTES_DATA_PER_SECTOR)
+#define DSK_SECTOR_OFFSET(s) (((s) - 1) * DSK_BYTES_DATA_PER_SECTOR)
 
 // offset in DSK to start of track/sector
 #define DSK_OFFSET(track, sector) (DSK_TRACK_OFFSET(track) + DSK_SECTOR_OFFSET(sector))
@@ -46,12 +47,12 @@ typedef enum {DSK_UNMOUNTED, DSK_MOUNTED} DSK_DRIVE_STATUS;
 
 typedef struct
 {
-    char data[BYTES_DATA_PER_SECTOR];
+    char data[DSK_BYTES_DATA_PER_SECTOR];
 } DSK_Sector;
 
 typedef struct
 {
-    DSK_Sector sectors[SECTORS_PER_TRACK];
+    DSK_Sector sectors[DSK_SECTORS_PER_TRACK];
 } DSK_Track;
 
 //--------------------------------------
@@ -59,8 +60,8 @@ typedef struct
 //--------------------------------------
 typedef struct
 {
-    char filename[8];
-    char ext[3];
+    char filename[DSK_MAX_FILENAME];
+    char ext[DSK_MAX_EXT];
     uint8_t type;
     uint8_t binary_ascii;
     uint8_t first_granule;
@@ -73,8 +74,8 @@ typedef struct
 //--------------------------------------
 typedef struct
 {
-    uint8_t granule_map[TOTAL_GRANULES];       // 68 = 34 data tracks * 2 granules / track
-    char reserved[256 - TOTAL_GRANULES];    // 256 - 68 = 188 reserved
+    uint8_t granule_map[DSK_TOTAL_GRANULES];    // 68 = 34 data tracks * 2 granules / track
+    char reserved[256 - DSK_TOTAL_GRANULES];    // 256 - 68 = 188 reserved
 } DSK_FAT;
 
 //--------------------------------------
@@ -86,6 +87,7 @@ typedef struct
     DSK_FAT fat;
     DSK_DirEntry dirs[DSK_MAX_DIR_ENTRIES];
     DSK_DRIVE_STATUS drv_status; // 0 - unmounted, 1 - mounted
+    int dirty_flag;
 } DSK_Drive;
 
 //--------------------------------------
@@ -100,7 +102,9 @@ int dsk_free_bytes(DSK_Drive *drv);
 int dsk_free_granules(DSK_Drive *drv);
 int dsk_add_file(DSK_Drive *drv, const char *filename);
 int dsk_extract_file(DSK_Drive *drv, const char *filename);
-int dsk_new(const char *filename);
+DSK_Drive *dsk_new(const char *filename);
 int dsk_format(DSK_Drive *drv);
+int dsk_flush(DSK_Drive *drv);
+int dsk_del(DSK_Drive *drv, const char *filename);
 
 #endif  // __DSK_H

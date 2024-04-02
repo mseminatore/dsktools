@@ -76,7 +76,7 @@ static int file_size(DSK_Drive *drv, DSK_DirEntry *dirent)
     int grans = count_granules(drv, dirent->first_granule, &sectors);
 
     // add in bytes in last sector
-    int size = (grans-1) * BYTES_PER_GRANULE + (sectors-1) * BYTES_DATA_PER_SECTOR + dirent->bytes_in_last_sector;
+    int size = (grans-1) * DSK_BYTES_PER_GRANULE + (sectors-1) * DSK_BYTES_DATA_PER_SECTOR + dirent->bytes_in_last_sector;
 // printf("%d grans, %d sectors, %d bytes\n", grans, sectors, dirent->bytes_in_last_sector);
 
     return size;
@@ -97,7 +97,7 @@ int dsk_free_granules(DSK_Drive *drv)
         return E_FAIL;
     }
 
-    for (int i = 0; i < TOTAL_GRANULES; i++)
+    for (int i = 0; i < DSK_TOTAL_GRANULES; i++)
     {
         if (drv->fat.granule_map[i] == DSK_GRANULE_FREE)
             count++;
@@ -120,7 +120,7 @@ int dsk_free_bytes(DSK_Drive *drv)
     }
 
     int grans = dsk_free_granules(drv);
-    int count = grans * BYTES_PER_GRANULE;
+    int count = grans * DSK_BYTES_PER_GRANULE;
     return count;
 }
 
@@ -174,8 +174,8 @@ int dsk_dir(DSK_Drive *drv)
 int dsk_seek_drive(DSK_Drive *drv, int track, int sector)
 {
     assert(drv && drv->fp);
-    assert(track >= 0 && track < NUM_TRACKS);
-    assert(sector >= 1 && sector <= SECTORS_PER_TRACK);
+    assert(track >= 0 && track < DSK_NUM_TRACKS);
+    assert(sector >= 1 && sector <= DSK_SECTORS_PER_TRACK);
 
     if (!drv || !drv->fp)
     {
@@ -204,7 +204,7 @@ int dsk_granule_map(DSK_Drive *drv)
     }
 
     // print FAT
-    for (int i = 1; i <= TOTAL_GRANULES; i++)
+    for (int i = 1; i <= DSK_TOTAL_GRANULES; i++)
     {
         printf("%02X ", drv->fat.granule_map[i-1]);
         if (0 == (i%24))
@@ -224,9 +224,11 @@ DSK_Drive *dsk_mount_drive(const char *filename)
     DSK_Drive *drv;
 
     drv = malloc(sizeof(DSK_Drive));
-
+    
     if (!drv)
         return NULL;
+
+    memset(drv, 0, sizeof(DSK_Drive));
 
     drv->fp = fopen(filename, "r+b");
     if (!drv->fp)
@@ -265,6 +267,9 @@ int dsk_unload_drive(DSK_Drive *drv)
         return E_FAIL;
     }
 
+    // ensure any changes are written!
+    dsk_flush(drv);
+
     fclose(drv->fp);
     drv->fp = NULL;
     drv->drv_status = DSK_UNMOUNTED;
@@ -284,6 +289,8 @@ int dsk_add_file(DSK_Drive *drv, const char *filename)
         puts("disk invalid");
         return E_FAIL;
     }
+
+    drv->dirty_flag = 1;
 
     return E_OK;
 }
@@ -363,17 +370,16 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
     // write out full granules    
     while(gran < 0xC0)
     {
-        int track = gran / GRANULES_PER_TRACK;
-        int granule_half = gran % GRANULES_PER_TRACK;
-        int sector = 1 + (gran % GRANULES_PER_TRACK) * SECTORS_PER_GRANULE;
+        int track = gran / DSK_GRANULES_PER_TRACK;
+        int sector = 1 + (gran % DSK_GRANULES_PER_TRACK) * DSK_SECTORS_PER_GRANULE;
 printf("t: %d, s: %d\n", track, sector);
         dsk_seek_drive(drv, track, sector);
 
 printf("extracting granule %2X\n", gran);
         for (int i = 0; i < 9; i++)
         {
-            fread(sector_data, BYTES_DATA_PER_SECTOR, 1, drv->fp);
-            fwrite(sector_data, BYTES_DATA_PER_SECTOR, 1, fout);
+            fread(sector_data, DSK_BYTES_DATA_PER_SECTOR, 1, drv->fp);
+            fwrite(sector_data, DSK_BYTES_DATA_PER_SECTOR, 1, fout);
         }
 
         // get next granule
@@ -389,11 +395,65 @@ printf("extracting granule %2X\n", gran);
 }
 
 //------------------------------------
+// delete file from mounted DSK
+//------------------------------------
+int dsk_del(DSK_Drive *drv, const char *filename)
+{
+    assert(drv && drv->fp);
+    if (!drv || !drv->fp)
+    {
+        puts("disk invalid.");
+        return E_FAIL;
+    }
+
+    DSK_DirEntry *dirent = find_file_dir(drv, filename);
+    if (!dirent)
+    {
+        puts("file not found.");
+        return E_FAIL;
+    }
+
+    dirent->filename[0] = DSK_DIRENT_DELETED;
+    // TODO - mark all file granules as free
+
+    drv->dirty_flag = 1;
+
+    dsk_flush(drv);
+
+    return E_OK;
+}
+
+//------------------------------------
 // create a new DSK file
 //------------------------------------
-int dsk_new(const char *filename)
+DSK_Drive *dsk_new(const char *filename)
 {
-    return E_OK;
+    uint8_t zero = 0;
+
+    assert(filename);
+
+    FILE *fout = fopen(filename, "wb");
+    if (!fout)
+    {
+        puts("file not found.");
+        return NULL;
+    }
+
+    // write out empty DSK
+    fwrite(&zero, sizeof(zero), DSK_TOTAL_SIZE, fout);
+printf("writing out blank DSK with %d bytes\n", DSK_TOTAL_SIZE);
+    fclose(fout);
+exit(0);
+
+    // mount it
+    DSK_Drive *drv = dsk_mount_drive(filename);
+    if (!drv)
+        return NULL;
+
+    // format it
+    dsk_format(drv);
+
+    return drv;
 }
 
 //------------------------------------
@@ -408,6 +468,26 @@ int dsk_flush(DSK_Drive *drv)
         return E_FAIL;
     }
 
+    // don't flush if nothing has changed
+    if (!drv->dirty_flag)
+    {
+        puts("flush called with no changes.");
+        return E_OK;
+    } else
+    {
+        puts("flushing dirty file.");
+    }
+
+    // write out the FAT
+    dsk_seek_drive(drv, DSK_DIR_TRACK, DSK_FAT_SECTOR);
+    fwrite(drv->fat.granule_map, 1, DSK_TOTAL_GRANULES, drv->fp);
+
+    // write out the Directory
+    dsk_seek_drive(drv, DSK_DIR_TRACK, DSK_DIRECTORY_SECTOR);
+    fwrite(drv->dirs, sizeof(DSK_DirEntry), DSK_MAX_DIR_ENTRIES, drv->fp);
+
+    drv->dirty_flag = 0;
+
     return E_OK;
 }
 
@@ -416,8 +496,6 @@ int dsk_flush(DSK_Drive *drv)
 //------------------------------------
 int dsk_format(DSK_Drive *drv)
 {
-    uint8_t val = DSK_GRANULE_FREE;
-
     assert(drv && drv->fp);
     if (!drv || !drv->fp)
     {
@@ -426,14 +504,17 @@ int dsk_format(DSK_Drive *drv)
     }
 
     // clear FAT granule entries
-    dsk_seek_drive(drv, DSK_DIR_TRACK, DSK_FAT_SECTOR);
-    // TODO - clear FAT in drv and then write the FAT
-    fwrite(&val, sizeof(val), TOTAL_GRANULES, drv->fp);
+    for (int i = 0; i < DSK_TOTAL_GRANULES; i++)
+        drv->fat.granule_map[i] = DSK_GRANULE_FREE;
 
     // clear Directory entries
-    dsk_seek_drive(drv, DSK_DIR_TRACK, DSK_DIRECTORY_SECTOR);
-    // TODO - clear dir entries in drv and then write the DIR
-//    fwrite(&val)
+    for (int i = 0; i < DSK_MAX_DIR_ENTRIES; i++)
+        drv->dirs[i].filename[0] = DSK_DIRENT_FREE;
+
+    drv->dirty_flag = 1;
+
+    // flush changes to DSK file
+    dsk_flush(drv);
 
     return E_OK;
 }
