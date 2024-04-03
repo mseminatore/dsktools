@@ -45,7 +45,7 @@ void dsk_printf(char *format, ...)
 //----------------------------------------
 static int count_granules(DSK_Drive *drv, int gran, int *tail_sectors)
 {
-    int count = 1;
+    int count = 0;
 
     assert(drv && drv->fp);
 
@@ -55,21 +55,22 @@ static int count_granules(DSK_Drive *drv, int gran, int *tail_sectors)
         return E_FAIL;
     }
 
-    while (drv->fat.granule_map[gran] < 0xC0)
+    while (!DSK_IS_LAST_GRANULE(gran))
     {
         count++;
         gran = drv->fat.granule_map[gran];
     }
 
+    // return number of sectors in last granule
     if (tail_sectors)
-        *tail_sectors = drv->fat.granule_map[gran] & 31;
+        *tail_sectors = gran & DSK_SECTOR_COUNT_MASK;
     
     return count;
 }
 
-//----------------------------------------
+//---------------------------------------------
 // walk and print the granule chain in the FAT
-//----------------------------------------
+//---------------------------------------------
 static int granule_chain(DSK_Drive *drv, DSK_DirEntry *dirent)
 {
     assert(drv && drv->fp);
@@ -82,13 +83,13 @@ static int granule_chain(DSK_Drive *drv, DSK_DirEntry *dirent)
 
     int gran = dirent->first_granule;
 
-    while(drv->fat.granule_map[gran] < 0xC0)
+    while (!DSK_IS_LAST_GRANULE(gran))
     {
-        dsk_printf("%02X->%02X ", gran, drv->fat.granule_map[gran]);
+        dsk_printf("%02X->", gran);
         gran = drv->fat.granule_map[gran];
     }
     
-    dsk_printf("%02X->%02X\n", gran, drv->fat.granule_map[gran]);
+    dsk_printf("%02X\n", gran);
 
     return E_OK;
 }
@@ -112,7 +113,7 @@ static int file_size(DSK_Drive *drv, DSK_DirEntry *dirent)
 
     // add in bytes in last sector
     int size = (grans-1) * DSK_BYTES_PER_GRANULE + (sectors-1) * DSK_BYTES_DATA_PER_SECTOR + dirent->bytes_in_last_sector;
-// printf("%d grans, %d sectors, %d bytes", grans, sectors, dirent->bytes_in_last_sector);
+printf("%d grans, %d sectors, %d bytes\n", grans, sectors, dirent->bytes_in_last_sector);
 
     return size;
 }
@@ -407,7 +408,7 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
     int gran = dirent->first_granule;
 
     // write out full granules    
-    while(gran < 0xC0)
+    while(!DSK_IS_LAST_GRANULE(gran))
     {
         int track = gran / DSK_GRANULES_PER_TRACK;
         int sector = 1 + (gran % DSK_GRANULES_PER_TRACK) * DSK_SECTORS_PER_GRANULE;
@@ -415,7 +416,7 @@ dsk_printf("t: %d, s: %d\n", track, sector);
         dsk_seek_drive(drv, track, sector);
 
 dsk_printf("extracting granule %2X\n", gran);
-        for (int i = 0; i < 9; i++)
+        for (int i = 0; i < DSK_SECTORS_PER_GRANULE; i++)
         {
             fread(sector_data, DSK_BYTES_DATA_PER_SECTOR, 1, drv->fp);
             fwrite(sector_data, DSK_BYTES_DATA_PER_SECTOR, 1, fout);
