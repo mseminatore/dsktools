@@ -3,6 +3,7 @@
 dsktools
 *.bin
 .DS_Store
+*.rom
 
 # Prerequisites
 *.d
