@@ -85,6 +85,7 @@ typedef struct
 //--------------------------------------
 typedef struct
 {
+    char filename[FILENAME_MAX];
     FILE *fp;
     DSK_FAT fat;
     DSK_DirEntry dirs[DSK_MAX_DIR_ENTRIES];

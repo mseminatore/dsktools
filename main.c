@@ -3,19 +3,22 @@
 #include <assert.h>
 #include "dsk.h"
 
+#define VERSION_STRING "0.1.0"
+
 #define TRUE    1
 #define FALSE   0
 #define SMALL_BUFFER    256
 
 typedef int (*cmd_func_t)(DSK_Drive *drv, void *params);
 
+typedef enum {CMD_SHOW, CMD_HIDDEN} CommandVisibility;
 //
 typedef struct
 {
     char* cmd;
     cmd_func_t cmd_func;
     char *help_text;
-    int hidden;
+    CommandVisibility hidden;
 } Command;
 
 //
@@ -196,19 +199,22 @@ int del_fn(DSK_Drive *drv, void *params)
 //---------------------------------
 Command cmds[] =
 {
-    {"add", add_fn, "add file to DSK", 0},
-    {"del", del_fn, "delete file from DSK", 0},
-    {"dir", dir_fn, "list directory contents", 0},
-    {"extract", extract_fn, "extract file from DSK"},
-    {"format", format_fn, "format DSK"},
-    {"free", free_fn, "report free space on drive", 0},
-    {"grans", gran_map_fn, "show granule map", 0},
-    {"help", help_fn, "list commands", 0},
-    {"mount", mount_fn, "mount a DSK file", 0},
-    {"new", new_fn, "create new DSK"},
-    {"unmount", unmount_fn, "unmount current DSK file", 0},
-    {"q", quit_fn , "quit app", 1},
-    {"quit", quit_fn , "quit app", 0},
+    {"add", add_fn, "add file to DSK", CMD_SHOW },
+    {"del", del_fn, "delete file from DSK", CMD_SHOW },
+    {"dir", dir_fn, "list directory contents", CMD_SHOW },
+    {"dskini", format_fn, "format DSK", CMD_HIDDEN },
+    {"extract", extract_fn, "extract file from DSK", CMD_SHOW },
+    {"format", format_fn, "format DSK", CMD_SHOW },
+    {"free", free_fn, "report free space on drive", CMD_SHOW },
+    {"grans", gran_map_fn, "show granule map", CMD_SHOW },
+    {"help", help_fn, "list commands", CMD_SHOW },
+    {"ls", dir_fn, "list directory contents", CMD_HIDDEN },
+    {"mount", mount_fn, "mount a DSK file", CMD_SHOW },
+    {"new", new_fn, "create new DSK", CMD_SHOW },
+    {"unload", unmount_fn, "unmount current DSK file", CMD_HIDDEN },
+    {"unmount", unmount_fn, "unmount current DSK file", CMD_SHOW },
+    {"q", quit_fn , "quit app", CMD_HIDDEN },
+    {"quit", quit_fn , "quit app", CMD_SHOW },
  
     { NULL, NULL , NULL}
 };
@@ -235,14 +241,15 @@ int exec_cmd(DSK_Drive *drv, char *cmd)
 //
 int main(int argc, char *argv[])
 {
-    char buf[256];
+    char buf[SMALL_BUFFER];
 
     assert(sizeof(DSK_DirEntry) == 32);
 
     if (argc > 1)
         g_drv = dsk_mount_drive(argv[1]);
 
-    printf("\nDSKTools - Welcome to the CoCo DSK file tool!\n");
+    printf("\nDSKTools v%s - Welcome to the CoCo DSK file tool!\n", VERSION_STRING);
+    printf("\t(type help for list of commands)\n");
 
     while (!done)
     {

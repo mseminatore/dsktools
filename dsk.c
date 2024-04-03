@@ -175,7 +175,7 @@ int dsk_dir(DSK_Drive *drv)
     memset(file, 0, sizeof(file));
     memset(ext, 0, sizeof(ext));
 
-    dsk_printf("\n");
+    dsk_printf("Directory of '%s'\n\n", drv->filename);
 
     for (int i = 0; i < DSK_MAX_DIR_ENTRIES; i++)
     {
@@ -242,7 +242,7 @@ int dsk_granule_map(DSK_Drive *drv)
     {
         dsk_printf("%02X ", drv->fat.granule_map[i-1]);
         if (0 == (i%24))
-            dsk_printf("");
+            dsk_printf("\n");
     }
 
     dsk_printf("");
@@ -281,9 +281,12 @@ DSK_Drive *dsk_mount_drive(const char *filename)
     fread(&drv->dirs, sizeof(DSK_DirEntry), DSK_MAX_DIR_ENTRIES, drv->fp);
 
     // fixup endianess
+    // TODO - maybe we don't fix it here, instead fix it on each use
     for (int i = 0; i < DSK_MAX_DIR_ENTRIES; i++)
         drv->dirs[i].bytes_in_last_sector = ntohs(drv->dirs[i].bytes_in_last_sector);
 
+    strcpy(drv->filename, filename);
+    
     drv->drv_status = DSK_MOUNTED;
 
     return drv;
@@ -449,7 +452,7 @@ int dsk_del(DSK_Drive *drv, const char *filename)
         return E_FAIL;
     }
 
-    // TODO - mark all file granules as free
+    // mark all file granules as free
     int gran = dirent->first_granule;
     while (!DSK_IS_LAST_GRANULE(gran))
     {
