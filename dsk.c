@@ -337,6 +337,8 @@ int dsk_unload_drive(DSK_Drive *drv)
 //------------------------------------
 int dsk_add_file(DSK_Drive *drv, const char *filename)
 {
+    char sector_data[DSK_BYTES_DATA_PER_SECTOR];
+
     assert(drv && drv->fp);
     if (!drv || !drv->fp)
     {
@@ -344,7 +346,33 @@ int dsk_add_file(DSK_Drive *drv, const char *filename)
         return E_FAIL;
     }
 
+    // open file and get file size
+    // TODO - check filename.ext length
+    FILE *fin = fopen(filename, "rb");
+    fseek(fin, 0, SEEK_END);
+    long fin_size = ftell(fin);
+    fseek(fin, 0, SEEK_SET);
+
+    // check that disk has space for file
+    if (fin_size > dsk_free_bytes(drv))
+    {
+        dsk_printf("out of space.");
+        fclose(fin);
+    }
+
+    // ensure upper case filename
+    // see if file already exists on DSK
+    // find first free directory entry
+    // DSK_DirEntry *dirent = find_first_free_dir_entry();
+    // update directory entry
+    // find first free cluster
+    // copy data
+
+    fclose(fin);
+
+    // update DSK image
     drv->dirty_flag = 1;
+    dsk_flush(drv);
 
     return E_OK;
 }
