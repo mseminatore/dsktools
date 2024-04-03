@@ -112,8 +112,8 @@ static int file_size(DSK_Drive *drv, DSK_DirEntry *dirent)
     int grans = count_granules(drv, dirent->first_granule, &sectors);
 
     // add in bytes in last sector
-    int size = (grans-1) * DSK_BYTES_PER_GRANULE + (sectors-1) * DSK_BYTES_DATA_PER_SECTOR + dirent->bytes_in_last_sector;
-printf("%d grans, %d sectors, %d bytes\n", grans, sectors, dirent->bytes_in_last_sector);
+    int size = (grans-1) * DSK_BYTES_PER_GRANULE + (sectors-1) * DSK_BYTES_DATA_PER_SECTOR + ntohs(dirent->bytes_in_last_sector);
+    DSK_TRACE("%d grans, %d sectors, %d bytes\n", grans, sectors, ntohs(dirent->bytes_in_last_sector));
 
     return size;
 }
@@ -143,7 +143,7 @@ int dsk_free_granules(DSK_Drive *drv)
 }
 
 //----------------------------------------
-// calc free bytes on drive
+// calc free bytes on DSK
 //----------------------------------------
 int dsk_free_bytes(DSK_Drive *drv)
 {
@@ -227,6 +227,20 @@ int dsk_seek_drive(DSK_Drive *drv, int track, int sector)
 }
 
 //------------------------------------
+//
+//------------------------------------
+int dsk_seek_to_granule(DSK_Drive *drv, int granule)
+{
+    assert(drv && drv->fp);
+    assert(granule >= 0 && granule <= DSK_LAST_GRANULE);
+
+    int track = granule / DSK_GRANULES_PER_TRACK;
+    int sector = 1 + (granule % DSK_GRANULES_PER_TRACK) * DSK_SECTORS_PER_GRANULE;
+
+    return dsk_seek_drive(drv, track, sector);
+}
+
+//------------------------------------
 // print granule map for mounted drive
 //------------------------------------
 int dsk_granule_map(DSK_Drive *drv)
@@ -283,8 +297,8 @@ DSK_Drive *dsk_mount_drive(const char *filename)
 
     // fixup endianess
     // TODO - maybe we don't fix it here, instead fix it on each use
-    for (int i = 0; i < DSK_MAX_DIR_ENTRIES; i++)
-        drv->dirs[i].bytes_in_last_sector = ntohs(drv->dirs[i].bytes_in_last_sector);
+    // for (int i = 0; i < DSK_MAX_DIR_ENTRIES; i++)
+    //     drv->dirs[i].bytes_in_last_sector = ntohs(drv->dirs[i].bytes_in_last_sector);
 
     strcpy(drv->filename, filename);
     
@@ -376,11 +390,11 @@ static DSK_DirEntry *find_file_dir(DSK_Drive *drv, const char *filename)
 }
 
 //------------------------------------
-// unmount a DSK file
+// extract a file from the DSK
 //------------------------------------
 int dsk_extract_file(DSK_Drive *drv, const char *filename)
 {
-    char sector_data[256];
+    char sector_data[DSK_BYTES_DATA_PER_SECTOR];
 
     assert(drv && drv->fp);
     if (!drv || !drv->fp)
@@ -408,14 +422,15 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
     int gran = dirent->first_granule;
 
     // write out full granules    
-    while(!DSK_IS_LAST_GRANULE(gran))
+    while(!DSK_IS_LAST_GRANULE(drv->fat.granule_map[gran]))
     {
         int track = gran / DSK_GRANULES_PER_TRACK;
         int sector = 1 + (gran % DSK_GRANULES_PER_TRACK) * DSK_SECTORS_PER_GRANULE;
-dsk_printf("t: %d, s: %d\n", track, sector);
+
+        DSK_TRACE("t: %d, s: %d\n", track, sector);
         dsk_seek_drive(drv, track, sector);
 
-dsk_printf("extracting granule %2X\n", gran);
+        DSK_TRACE("extracting granule %2X\n", gran);
         for (int i = 0; i < DSK_SECTORS_PER_GRANULE; i++)
         {
             fread(sector_data, DSK_BYTES_DATA_PER_SECTOR, 1, drv->fp);
@@ -427,7 +442,22 @@ dsk_printf("extracting granule %2X\n", gran);
     }
 
     // write out partial granule
+    int next_gran = drv->fat.granule_map[gran];
+    int tail_sectors = (next_gran & DSK_SECTOR_COUNT_MASK) - 1;
+
+    DSK_TRACE("tail sectors in %02X: %d\n", gran, tail_sectors + 1);
+    dsk_seek_to_granule(drv, gran);
+    for (int i = 0; i < tail_sectors; i++)
+    {
+        fread(sector_data, DSK_BYTES_DATA_PER_SECTOR, 1, drv->fp);
+        fwrite(sector_data, DSK_BYTES_DATA_PER_SECTOR, 1, fout);
+    }
+
     // write out partial sector
+    int bytes_in_last_sector = ntohs(dirent->bytes_in_last_sector);
+    DSK_TRACE("bytes in last sector: %d\n", bytes_in_last_sector);
+    fread(sector_data, bytes_in_last_sector, 1, drv->fp);
+    fwrite(sector_data, bytes_in_last_sector, 1, fout);
 
     fclose(fout);
 

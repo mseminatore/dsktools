@@ -27,6 +27,7 @@
 #define DSK_PRINTF_BUF_SIZE         256
 #define DSK_IS_LAST_GRANULE(g)      (!((g) < 0xC0))
 #define DSK_SECTOR_COUNT_MASK       31
+#define DSK_LAST_GRANULE            0x43
 
 // error return codes
 #ifndef E_OK
