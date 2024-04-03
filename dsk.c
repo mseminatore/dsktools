@@ -14,10 +14,12 @@ DSK_Print dsk_puts = dsk_default_output;
 //----------------------------------------
 static void dsk_default_output(const char *s)
 {
-	puts(s);
+	fputs(s, stdout);
 }
 
-//
+//----------------------------------------
+// override the default output function
+//----------------------------------------
 void dsk_set_output_function(DSK_Print f)
 {
     dsk_puts = f;
@@ -49,7 +51,7 @@ static int count_granules(DSK_Drive *drv, int gran, int *tail_sectors)
 
     if (!drv || !drv->fp)
     {
-        dsk_printf("disk invalid");
+        dsk_printf("disk invalid\n");
         return E_FAIL;
     }
 
@@ -74,7 +76,7 @@ static int granule_chain(DSK_Drive *drv, DSK_DirEntry *dirent)
 
     if (!drv || !drv->fp)
     {
-        dsk_printf("disk invalid");
+        dsk_printf("disk invalid\n");
         return E_FAIL;
     }
 
@@ -86,7 +88,7 @@ static int granule_chain(DSK_Drive *drv, DSK_DirEntry *dirent)
         gran = drv->fat.granule_map[gran];
     }
     
-    dsk_printf("%02X->%02X", gran, drv->fat.granule_map[gran]);
+    dsk_printf("%02X->%02X\n", gran, drv->fat.granule_map[gran]);
 
     return E_OK;
 }
@@ -100,7 +102,7 @@ static int file_size(DSK_Drive *drv, DSK_DirEntry *dirent)
 
     if (!drv || !drv->fp)
     {
-        dsk_printf("disk invalid");
+        dsk_printf("disk invalid\n");
         return E_FAIL;
     }
 
@@ -126,7 +128,7 @@ int dsk_free_granules(DSK_Drive *drv)
 
     if (!drv || !drv->fp)
     {
-        dsk_printf("disk invalid");
+        dsk_printf("disk invalid\n");
         return E_FAIL;
     }
 
@@ -148,7 +150,7 @@ int dsk_free_bytes(DSK_Drive *drv)
 
     if (!drv || !drv->fp)
     {
-        dsk_printf("disk invalid");
+        dsk_printf("disk invalid\n");
         return E_FAIL;
     }
 
@@ -166,14 +168,14 @@ int dsk_dir(DSK_Drive *drv)
 
     if (!drv || !drv->fp)
     {
-        dsk_printf("no disk mounted.");
+        dsk_printf("no disk mounted.\n");
         return E_FAIL;
     }
 
     memset(file, 0, sizeof(file));
     memset(ext, 0, sizeof(ext));
 
-    dsk_printf("");
+    dsk_printf("\n");
 
     for (int i = 0; i < DSK_MAX_DIR_ENTRIES; i++)
     {
@@ -185,16 +187,16 @@ int dsk_dir(DSK_Drive *drv)
             strncpy(ext, dirent->ext, DSK_MAX_EXT);
 
             int grans = count_granules(drv, dirent->first_granule, NULL);
-#if 0
-            dsk_printf("%8s %3s\t%d %c %d", file, ext, dirent->type, dirent->binary_ascii == 0? 'B' : 'A', grans);
+#if 1
+            dsk_printf("%8s %3s\t%d %c %d\n", file, ext, dirent->type, dirent->binary_ascii == 0? 'B' : 'A', grans);
 #else
-            dsk_printf("%8s %3s\t%d %c %d (%d bytes)", file, ext, dirent->type, dirent->binary_ascii == 0? 'B' : 'A', grans, file_size(drv, dirent));
+            dsk_printf("%8s %3s\t%d %c %d (%d bytes)\n", file, ext, dirent->type, dirent->binary_ascii == 0? 'B' : 'A', grans, file_size(drv, dirent));
             granule_chain(drv, dirent);
 #endif
         }
     }
 
-    dsk_printf("\n%d bytes (%d granules) free.", dsk_free_bytes(drv), dsk_free_granules(drv));
+    dsk_printf("\n%d bytes (%d granules) free.\n", dsk_free_bytes(drv), dsk_free_granules(drv));
 
     return E_OK;
 }
@@ -210,13 +212,13 @@ int dsk_seek_drive(DSK_Drive *drv, int track, int sector)
 
     if (!drv || !drv->fp)
     {
-        dsk_printf("disk invalid");
+        dsk_printf("disk invalid\n");
         return E_FAIL;
     }
 
     long offset = DSK_OFFSET(track, sector);
     
-    DSK_TRACE("seeking to track %d, sector %d, offset is %lX", track, sector, offset);
+    DSK_TRACE("seeking to track %d, sector %d, offset is %lX\n", track, sector, offset);
 
     fseek(drv->fp, offset, SEEK_SET);
 
@@ -231,7 +233,7 @@ int dsk_granule_map(DSK_Drive *drv)
     assert(drv && drv->fp);
     if (!drv || !drv->fp)
     {
-        dsk_printf("disk invalid");
+        dsk_printf("disk invalid\n");
         return E_FAIL;
     }
 
@@ -265,7 +267,7 @@ DSK_Drive *dsk_mount_drive(const char *filename)
     drv->fp = fopen(filename, "r+b");
     if (!drv->fp)
     {
-        dsk_printf("Disk (%s) not found.", filename);
+        dsk_printf("Disk (%s) not found.\n", filename);
         free(drv);
         return NULL;
     }
@@ -295,7 +297,7 @@ int dsk_unload_drive(DSK_Drive *drv)
     // assert(drv && drv->fp);
     if (!drv || !drv->fp)
     {
-        dsk_printf("no disk mounted.");
+        dsk_printf("no disk mounted.\n");
         return E_FAIL;
     }
 
@@ -320,7 +322,7 @@ int dsk_add_file(DSK_Drive *drv, const char *filename)
     assert(drv && drv->fp);
     if (!drv || !drv->fp)
     {
-        dsk_printf("disk invalid");
+        dsk_printf("disk invalid\n");
         return E_FAIL;
     }
 
@@ -379,14 +381,14 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
     assert(drv && drv->fp);
     if (!drv || !drv->fp)
     {
-        dsk_printf("disk invalid.");
+        dsk_printf("disk invalid.\n");
         return E_FAIL;
     }
 
     DSK_DirEntry *dirent = find_file_dir(drv, filename);
     if (!dirent)
     {
-        dsk_printf("file not found.");
+        dsk_printf("file not found.\n");
         return E_FAIL;
     }
 
@@ -394,7 +396,7 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
     FILE *fout = fopen(filename, "wb");
     if (!fout)
     {
-        dsk_printf("file not found.");
+        dsk_printf("file not found.\n");
         return E_FAIL;
     }
 
@@ -406,10 +408,10 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
     {
         int track = gran / DSK_GRANULES_PER_TRACK;
         int sector = 1 + (gran % DSK_GRANULES_PER_TRACK) * DSK_SECTORS_PER_GRANULE;
-dsk_printf("t: %d, s: %d", track, sector);
+dsk_printf("t: %d, s: %d\n", track, sector);
         dsk_seek_drive(drv, track, sector);
 
-dsk_printf("extracting granule %2X", gran);
+dsk_printf("extracting granule %2X\n", gran);
         for (int i = 0; i < 9; i++)
         {
             fread(sector_data, DSK_BYTES_DATA_PER_SECTOR, 1, drv->fp);
@@ -436,19 +438,29 @@ int dsk_del(DSK_Drive *drv, const char *filename)
     assert(drv && drv->fp);
     if (!drv || !drv->fp)
     {
-        dsk_printf("disk invalid.");
+        dsk_printf("disk invalid.\n");
         return E_FAIL;
     }
 
     DSK_DirEntry *dirent = find_file_dir(drv, filename);
     if (!dirent)
     {
-        dsk_printf("file not found.");
+        dsk_printf("file not found.\n");
         return E_FAIL;
     }
 
-    dirent->filename[0] = DSK_DIRENT_DELETED;
     // TODO - mark all file granules as free
+    int gran = dirent->first_granule;
+    while (!DSK_IS_LAST_GRANULE(gran))
+    {
+        int next_gran = drv->fat.granule_map[gran];
+        DSK_TRACE("marking granule %2X as free.\n", gran);
+        drv->fat.granule_map[gran] = DSK_GRANULE_FREE;
+        gran = next_gran;
+    }
+
+    // mark the dir entry as freed
+    dirent->filename[0] = DSK_DIRENT_DELETED;
 
     drv->dirty_flag = 1;
 
@@ -469,7 +481,7 @@ DSK_Drive *dsk_new(const char *filename)
     FILE *fout = fopen(filename, "wb");
     if (!fout)
     {
-        dsk_printf("file not found.");
+        dsk_printf("file not found.\n");
         return NULL;
     }
 
@@ -488,7 +500,7 @@ DSK_Drive *dsk_new(const char *filename)
     DSK_Drive *drv = dsk_mount_drive(filename);
     if (!drv)
     {
-        dsk_printf("disk not found.");
+        dsk_printf("disk not found.\n");
         return NULL;
     }
 
@@ -506,18 +518,18 @@ int dsk_flush(DSK_Drive *drv)
     assert(drv && drv->fp);
     if (!drv || !drv->fp)
     {
-        dsk_printf("disk invalid.");
+        dsk_printf("disk invalid.\n");
         return E_FAIL;
     }
 
     // don't flush if nothing has changed
     if (!drv->dirty_flag)
     {
-        dsk_printf("flush called with no changes.");
+        DSK_TRACE("flush called with no changes.\n");
         return E_OK;
     } else
     {
-        dsk_printf("flushing dirty file.");
+        DSK_TRACE("flushing dirty file.\n");
     }
 
     // write out the FAT
@@ -543,7 +555,7 @@ int dsk_format(DSK_Drive *drv)
     assert(drv && drv->fp);
     if (!drv || !drv->fp)
     {
-        dsk_printf("disk invalid.");
+        dsk_printf("disk invalid.\n");
         return E_FAIL;
     }
 

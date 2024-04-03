@@ -25,6 +25,7 @@
 #define DSK_GRANULE_FREE            0xFF
 #define DSK_TOTAL_SIZE              (DSK_NUM_TRACKS * DSK_SECTORS_PER_TRACK * DSK_BYTES_DATA_PER_SECTOR)
 #define DSK_PRINTF_BUF_SIZE         256
+#define DSK_IS_LAST_GRANULE(g)      (!((g) < 0xC0))
 
 // error return codes
 #ifndef E_OK
