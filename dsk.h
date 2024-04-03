@@ -24,6 +24,7 @@
 #define DSK_DIRENT_DELETED          0
 #define DSK_GRANULE_FREE            0xFF
 #define DSK_TOTAL_SIZE              (DSK_NUM_TRACKS * DSK_SECTORS_PER_TRACK * DSK_BYTES_DATA_PER_SECTOR)
+#define DSK_PRINTF_BUF_SIZE         256
 
 // error return codes
 #ifndef E_OK
@@ -90,6 +91,15 @@ typedef struct
     int dirty_flag;
 } DSK_Drive;
 
+typedef void (*DSK_Print)(const char *s);
+
+#ifdef DSK_DEBUG
+#   define DSK_TRACE(...) fprintf(stderr, __VA_ARGS__)
+#else
+#   define DSK_TRACE(...)
+// #   define MT_TRACE __noop
+#endif
+
 //--------------------------------------
 // library functions
 //--------------------------------------
@@ -106,5 +116,6 @@ DSK_Drive *dsk_new(const char *filename);
 int dsk_format(DSK_Drive *drv);
 int dsk_flush(DSK_Drive *drv);
 int dsk_del(DSK_Drive *drv, const char *filename);
+void dsk_set_output_function(DSK_Print f);
 
 #endif  // __DSK_H

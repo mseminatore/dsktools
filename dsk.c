@@ -1,9 +1,42 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdarg.h>
 #include <string.h>
 #include <assert.h>
 #include "dsk.h"
+
+static void dsk_default_output(const char *s);
+DSK_Print dsk_puts = dsk_default_output;
+
+//----------------------------------------
+// default output function
+//----------------------------------------
+static void dsk_default_output(const char *s)
+{
+	puts(s);
+}
+
+//
+void dsk_set_output_function(DSK_Print f)
+{
+    dsk_puts = f;
+}
+
+//----------------------------------------
+// DSK formatted output function
+//----------------------------------------
+void dsk_printf(char *format, ...)
+{
+	char buf[DSK_PRINTF_BUF_SIZE];
+	va_list valist;
+
+	va_start(valist, format);
+	vsprintf(buf, format, valist);
+	va_end(valist);
+
+	dsk_puts(buf);
+}
 
 //----------------------------------------
 // count granules used by file
@@ -16,7 +49,7 @@ static int count_granules(DSK_Drive *drv, int gran, int *tail_sectors)
 
     if (!drv || !drv->fp)
     {
-        puts("disk invalid");
+        dsk_printf("disk invalid");
         return E_FAIL;
     }
 
@@ -41,7 +74,7 @@ static int granule_chain(DSK_Drive *drv, DSK_DirEntry *dirent)
 
     if (!drv || !drv->fp)
     {
-        puts("disk invalid");
+        dsk_printf("disk invalid");
         return E_FAIL;
     }
 
@@ -49,17 +82,17 @@ static int granule_chain(DSK_Drive *drv, DSK_DirEntry *dirent)
 
     while(drv->fat.granule_map[gran] < 0xC0)
     {
-        printf("%02X->%02X ", gran, drv->fat.granule_map[gran]);
+        dsk_printf("%02X->%02X ", gran, drv->fat.granule_map[gran]);
         gran = drv->fat.granule_map[gran];
     }
     
-    printf("%02X->%02X\n", gran, drv->fat.granule_map[gran]);
+    dsk_printf("%02X->%02X", gran, drv->fat.granule_map[gran]);
 
     return E_OK;
 }
 
 //----------------------------------------
-//
+// return size of file
 //----------------------------------------
 static int file_size(DSK_Drive *drv, DSK_DirEntry *dirent)
 {
@@ -67,7 +100,7 @@ static int file_size(DSK_Drive *drv, DSK_DirEntry *dirent)
 
     if (!drv || !drv->fp)
     {
-        puts("disk invalid");
+        dsk_printf("disk invalid");
         return E_FAIL;
     }
 
@@ -77,7 +110,7 @@ static int file_size(DSK_Drive *drv, DSK_DirEntry *dirent)
 
     // add in bytes in last sector
     int size = (grans-1) * DSK_BYTES_PER_GRANULE + (sectors-1) * DSK_BYTES_DATA_PER_SECTOR + dirent->bytes_in_last_sector;
-// printf("%d grans, %d sectors, %d bytes\n", grans, sectors, dirent->bytes_in_last_sector);
+// printf("%d grans, %d sectors, %d bytes", grans, sectors, dirent->bytes_in_last_sector);
 
     return size;
 }
@@ -93,7 +126,7 @@ int dsk_free_granules(DSK_Drive *drv)
 
     if (!drv || !drv->fp)
     {
-        puts("disk invalid");
+        dsk_printf("disk invalid");
         return E_FAIL;
     }
 
@@ -115,7 +148,7 @@ int dsk_free_bytes(DSK_Drive *drv)
 
     if (!drv || !drv->fp)
     {
-        puts("disk invalid");
+        dsk_printf("disk invalid");
         return E_FAIL;
     }
 
@@ -131,18 +164,16 @@ int dsk_dir(DSK_Drive *drv)
 {
     char file[DSK_MAX_FILENAME + 1], ext[DSK_MAX_EXT + 1];
 
-    assert(drv && drv->fp);
-
     if (!drv || !drv->fp)
     {
-        puts("disk invalid");
+        dsk_printf("no disk mounted.");
         return E_FAIL;
     }
 
     memset(file, 0, sizeof(file));
     memset(ext, 0, sizeof(ext));
 
-    puts("");
+    dsk_printf("");
 
     for (int i = 0; i < DSK_MAX_DIR_ENTRIES; i++)
     {
@@ -155,15 +186,15 @@ int dsk_dir(DSK_Drive *drv)
 
             int grans = count_granules(drv, dirent->first_granule, NULL);
 #if 0
-            printf("%8s %3s\t%d %c %d\n", file, ext, dirent->type, dirent->binary_ascii == 0? 'B' : 'A', grans);
+            dsk_printf("%8s %3s\t%d %c %d", file, ext, dirent->type, dirent->binary_ascii == 0? 'B' : 'A', grans);
 #else
-            printf("%8s %3s\t%d %c %d %d\n", file, ext, dirent->type, dirent->binary_ascii == 0? 'B' : 'A', grans, file_size(drv, dirent));
+            dsk_printf("%8s %3s\t%d %c %d (%d bytes)", file, ext, dirent->type, dirent->binary_ascii == 0? 'B' : 'A', grans, file_size(drv, dirent));
             granule_chain(drv, dirent);
 #endif
         }
     }
 
-    printf("\n%d bytes (%d granules) free.\n", dsk_free_bytes(drv), dsk_free_granules(drv));
+    dsk_printf("\n%d bytes (%d granules) free.", dsk_free_bytes(drv), dsk_free_granules(drv));
 
     return E_OK;
 }
@@ -179,12 +210,13 @@ int dsk_seek_drive(DSK_Drive *drv, int track, int sector)
 
     if (!drv || !drv->fp)
     {
-        puts("disk invalid");
+        dsk_printf("disk invalid");
         return E_FAIL;
     }
 
     long offset = DSK_OFFSET(track, sector);
-printf("seeking to track %d, sector %d, offset is %lX\n", track, sector, offset);
+    
+    DSK_TRACE("seeking to track %d, sector %d, offset is %lX", track, sector, offset);
 
     fseek(drv->fp, offset, SEEK_SET);
 
@@ -199,19 +231,19 @@ int dsk_granule_map(DSK_Drive *drv)
     assert(drv && drv->fp);
     if (!drv || !drv->fp)
     {
-        puts("disk invalid");
+        dsk_printf("disk invalid");
         return E_FAIL;
     }
 
     // print FAT
     for (int i = 1; i <= DSK_TOTAL_GRANULES; i++)
     {
-        printf("%02X ", drv->fat.granule_map[i-1]);
+        dsk_printf("%02X ", drv->fat.granule_map[i-1]);
         if (0 == (i%24))
-            puts("");
+            dsk_printf("");
     }
 
-    puts("");
+    dsk_printf("");
 
     return E_OK;
 }
@@ -233,7 +265,7 @@ DSK_Drive *dsk_mount_drive(const char *filename)
     drv->fp = fopen(filename, "r+b");
     if (!drv->fp)
     {
-        printf("Disk (%s) not found.\n", filename);
+        dsk_printf("Disk (%s) not found.", filename);
         free(drv);
         return NULL;
     }
@@ -260,17 +292,17 @@ DSK_Drive *dsk_mount_drive(const char *filename)
 //------------------------------------
 int dsk_unload_drive(DSK_Drive *drv)
 {
-    assert(drv && drv->fp);
+    // assert(drv && drv->fp);
     if (!drv || !drv->fp)
     {
-        puts("disk invalid");
+        dsk_printf("no disk mounted.");
         return E_FAIL;
     }
 
     // ensure any changes are written!
     dsk_flush(drv);
 
-    fflush(drv->fp);
+    // fflush(drv->fp);
     fclose(drv->fp);
     
     drv->fp = NULL;
@@ -288,7 +320,7 @@ int dsk_add_file(DSK_Drive *drv, const char *filename)
     assert(drv && drv->fp);
     if (!drv || !drv->fp)
     {
-        puts("disk invalid");
+        dsk_printf("disk invalid");
         return E_FAIL;
     }
 
@@ -347,14 +379,14 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
     assert(drv && drv->fp);
     if (!drv || !drv->fp)
     {
-        puts("disk invalid.");
+        dsk_printf("disk invalid.");
         return E_FAIL;
     }
 
     DSK_DirEntry *dirent = find_file_dir(drv, filename);
     if (!dirent)
     {
-        puts("file not found.");
+        dsk_printf("file not found.");
         return E_FAIL;
     }
 
@@ -362,7 +394,7 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
     FILE *fout = fopen(filename, "wb");
     if (!fout)
     {
-        puts("file not found.");
+        dsk_printf("file not found.");
         return E_FAIL;
     }
 
@@ -374,10 +406,10 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
     {
         int track = gran / DSK_GRANULES_PER_TRACK;
         int sector = 1 + (gran % DSK_GRANULES_PER_TRACK) * DSK_SECTORS_PER_GRANULE;
-printf("t: %d, s: %d\n", track, sector);
+dsk_printf("t: %d, s: %d", track, sector);
         dsk_seek_drive(drv, track, sector);
 
-printf("extracting granule %2X\n", gran);
+dsk_printf("extracting granule %2X", gran);
         for (int i = 0; i < 9; i++)
         {
             fread(sector_data, DSK_BYTES_DATA_PER_SECTOR, 1, drv->fp);
@@ -404,14 +436,14 @@ int dsk_del(DSK_Drive *drv, const char *filename)
     assert(drv && drv->fp);
     if (!drv || !drv->fp)
     {
-        puts("disk invalid.");
+        dsk_printf("disk invalid.");
         return E_FAIL;
     }
 
     DSK_DirEntry *dirent = find_file_dir(drv, filename);
     if (!dirent)
     {
-        puts("file not found.");
+        dsk_printf("file not found.");
         return E_FAIL;
     }
 
@@ -430,28 +462,35 @@ int dsk_del(DSK_Drive *drv, const char *filename)
 //------------------------------------
 DSK_Drive *dsk_new(const char *filename)
 {
-    uint8_t zero = 0;
+    char sector_data[DSK_BYTES_DATA_PER_SECTOR];
 
     assert(filename);
 
     FILE *fout = fopen(filename, "wb");
     if (!fout)
     {
-        puts("file not found.");
+        dsk_printf("file not found.");
         return NULL;
     }
 
     // write out empty DSK
-    size_t written = fwrite(&zero, sizeof(uint8_t), DSK_TOTAL_SIZE, fout);
-printf("writing out blank DSK with %d bytes, %ld bytes written\n", DSK_TOTAL_SIZE, written);
-    fflush(fout);
+    memset(sector_data, 0, DSK_BYTES_DATA_PER_SECTOR);
+
+    for (int track = 0; track < DSK_NUM_TRACKS; track++)
+    {
+        for (int sector = 0; sector < DSK_SECTORS_PER_TRACK; sector++)
+            fwrite(sector_data, sizeof(sector_data), 1, fout);
+    }
+
     fclose(fout);
-exit(0);
 
     // mount it
     DSK_Drive *drv = dsk_mount_drive(filename);
     if (!drv)
+    {
+        dsk_printf("disk not found.");
         return NULL;
+    }
 
     // format it
     dsk_format(drv);
@@ -467,18 +506,18 @@ int dsk_flush(DSK_Drive *drv)
     assert(drv && drv->fp);
     if (!drv || !drv->fp)
     {
-        puts("disk invalid.");
+        dsk_printf("disk invalid.");
         return E_FAIL;
     }
 
     // don't flush if nothing has changed
     if (!drv->dirty_flag)
     {
-        puts("flush called with no changes.");
+        dsk_printf("flush called with no changes.");
         return E_OK;
     } else
     {
-        puts("flushing dirty file.");
+        dsk_printf("flushing dirty file.");
     }
 
     // write out the FAT
@@ -489,7 +528,7 @@ int dsk_flush(DSK_Drive *drv)
     dsk_seek_drive(drv, DSK_DIR_TRACK, DSK_DIRECTORY_SECTOR);
     fwrite(drv->dirs, sizeof(DSK_DirEntry), DSK_MAX_DIR_ENTRIES, drv->fp);
 
-    fflush(drv->fp);
+    // fflush(drv->fp);
 
     drv->dirty_flag = 0;
 
@@ -504,7 +543,7 @@ int dsk_format(DSK_Drive *drv)
     assert(drv && drv->fp);
     if (!drv || !drv->fp)
     {
-        puts("disk invalid.");
+        dsk_printf("disk invalid.");
         return E_FAIL;
     }
 

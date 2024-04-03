@@ -60,7 +60,7 @@ int mount_fn(DSK_Drive *drv, void *params)
     g_drv = dsk_mount_drive(filename);
     if (!g_drv)
     {
-        printf("unable to mount %s\n", filename);
+        // printf("unable to mount (%s)\n", filename);
         return FALSE;
     }
 
@@ -201,7 +201,7 @@ Command cmds[] =
     {"dir", dir_fn, "list directory contents", 0},
     {"extract", extract_fn, "extract file from DSK"},
     {"format", format_fn, "format DSK"},
-    {"free", free_fn, "free space on drive", 0},
+    {"free", free_fn, "report free space on drive", 0},
     {"grans", gran_map_fn, "show granule map", 0},
     {"help", help_fn, "list commands", 0},
     {"mount", mount_fn, "mount a DSK file", 0},
@@ -242,7 +242,7 @@ int main(int argc, char *argv[])
     if (argc > 1)
         g_drv = dsk_mount_drive(argv[1]);
 
-    printf("\nDSKTools - Welcome to the CoCo DSK file tool!\n\n");
+    printf("\nDSKTools - Welcome to the CoCo DSK file tool!\n");
 
     while (!done)
     {
