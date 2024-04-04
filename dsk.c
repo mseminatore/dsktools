@@ -121,7 +121,7 @@ static int file_size(DSK_Drive *drv, DSK_DirEntry *dirent)
 
     if (!drv || !drv->fp)
     {
-        dsk_printf("disk invalid\n");
+        dsk_printf("disk invalid.\n");
         return E_FAIL;
     }
 
@@ -129,9 +129,22 @@ static int file_size(DSK_Drive *drv, DSK_DirEntry *dirent)
     int sectors = 0;
     int grans = count_granules(drv, dirent->first_granule, &sectors);
 
+    // add in size of full granules
+    int size = (grans - 1) * DSK_BYTES_PER_GRANULE;
+
+    // add in size of full sectors
+    if (sectors)
+    {
+        if (dirent->bytes_in_last_sector)
+            size += (sectors - 1) * DSK_BYTES_DATA_PER_SECTOR;
+        else
+            size += (sectors) * DSK_BYTES_DATA_PER_SECTOR;
+    }
+
     // add in bytes in last sector
-    int size = (grans-1) * DSK_BYTES_PER_GRANULE + (sectors-1) * DSK_BYTES_DATA_PER_SECTOR + ntohs(dirent->bytes_in_last_sector);
-    DSK_TRACE("%d grans, %d sectors, %d bytes\n", grans, sectors, ntohs(dirent->bytes_in_last_sector));
+    size += ntohs(dirent->bytes_in_last_sector);
+
+    DSK_TRACE("%d total grans, %d sectors in last gran, %d bytes in last sector\n", grans, sectors, ntohs(dirent->bytes_in_last_sector));
 
     return size;
 }
@@ -326,11 +339,11 @@ int dsk_granule_map(DSK_Drive *drv)
     for (int i = 1; i <= DSK_TOTAL_GRANULES; i++)
     {
         dsk_printf("%02X ", drv->fat.granule_map[i-1]);
-        if (0 == (i%24))
+        if (0 == (i%23))
             dsk_printf("\n");
     }
 
-    dsk_printf("");
+    dsk_printf("\n");
 
     return E_OK;
 }
@@ -445,7 +458,10 @@ static int find_first_free_granule(DSK_Drive *drv)
     for (int i = 0; i < DSK_TOTAL_GRANULES; i++)
     {
         if (drv->fat.granule_map[i] == DSK_GRANULE_FREE)
+        {
+            dsk_printf("returning free granule: %d\n", i);
             return i;
+        }
     }
 
     return -1;
@@ -454,7 +470,7 @@ static int find_first_free_granule(DSK_Drive *drv)
 //------------------------------------
 // add file to a mounted DSK file
 //------------------------------------
-int dsk_add_file(DSK_Drive *drv, const char *filename, OpenMode mode)
+int dsk_add_file(DSK_Drive *drv, const char *filename, DSK_OPEN_MODE mode, DSK_FILE_TYPE type)
 {
     char *pmode = "rb";
     char sector_data[DSK_BYTES_DATA_PER_SECTOR];
@@ -470,7 +486,7 @@ int dsk_add_file(DSK_Drive *drv, const char *filename, OpenMode mode)
     // get dest filename and ensure upper case
     strcpy(dest_filename, dsk_basename(filename));
     string_upper(dest_filename);
-dsk_printf("adding file '%s'\n", dest_filename);
+    DSK_TRACE("adding file '%s'\n", dest_filename);
 
     // check filename.ext length
     if (strlen(filename) > DSK_MAX_FILENAME + DSK_MAX_EXT + 1)
@@ -480,7 +496,7 @@ dsk_printf("adding file '%s'\n", dest_filename);
     }
 
     // open the input file
-    if (mode == MODE_ASCII)
+    if (mode == DSK_MODE_ASCII)
         pmode = "rt";
 
     FILE *fin = fopen(filename, pmode);
@@ -522,32 +538,77 @@ dsk_printf("adding file '%s'\n", dest_filename);
     }
 
     // update directory entry
-    int extension_index;
-    int i;
-    for (i = 0; i < DSK_MAX_FILENAME; i++)
-        dirent->filename[i] = ' ';
-    for (i = 0; i < DSK_MAX_EXT; i++)
-        dirent->ext[i] = ' ';
+    char *basefile = strtok(dest_filename, ".");
+    char *ext = strtok(NULL, "");
 
     // copy in the filename, left justified, padded with spaces
-    for (i = 0; i < DSK_MAX_FILENAME; i++)
+    for (int i = 0; i < DSK_MAX_FILENAME; i++)
     {
-        if (dest_filename[i] == '.')
-            break;
-
-        dirent->filename[i] = dest_filename[i];
+        if (i < strlen(basefile))
+            dirent->filename[i]= basefile[i];
+        else
+            dirent->filename[i] = ' ';
     }
 
     // copy in the extension, left justified, padded with spaces
+    for (int i = 0; i < DSK_MAX_EXT; i++)
+    {
+        if (i < strlen(ext))
+            dirent->ext[i] = ext[i];
+        else
+            dirent->ext[i] = ' ';
+    }
+
+    DSK_TRACE("%s -> file: %s, ext: %s\n", dest_filename, basefile, ext);
     
-    dirent->binary_ascii = (mode == MODE_ASCII) ? 0xFF : 0;
-    dirent->type = (mode == MODE_ASCII) ? 3 : 2;
+    dirent->binary_ascii = (mode == DSK_MODE_ASCII) ? 0xFF : 0;
+    dirent->type = type;
 
     // find first free granule
-    dirent->first_granule = find_first_free_granule(drv);
+    int next_gran, gran = find_first_free_granule(drv);
+    dirent->first_granule = gran;
 
-    // copy data
-    // update bytes in last sector
+    // copy full granule data
+    for (; fin_size >= DSK_BYTES_PER_GRANULE; fin_size -= DSK_BYTES_PER_GRANULE)
+    {
+        dsk_seek_to_granule(drv, gran);
+        for (int sector = 0; sector < DSK_SECTORS_PER_GRANULE; sector++)
+        {
+            fread(sector_data, sizeof(sector_data), 1, fin);
+            fwrite(sector_data, sizeof(sector_data), 1, drv->fp);
+        }
+
+        // temporarily mark this granule as used find chooses next avail
+        drv->fat.granule_map[gran] = 0xC0;
+
+        // find next available granule
+        next_gran = find_first_free_granule(drv);
+
+        // patch current granule point to next granule
+        drv->fat.granule_map[gran] = next_gran;
+        gran = next_gran;
+    }
+
+    // find number of sectors used
+    int tail_sectors = fin_size / DSK_BYTES_DATA_PER_SECTOR;
+    int extra_bytes = fin_size % DSK_BYTES_DATA_PER_SECTOR;
+    DSK_TRACE("fin_size: %d, tail sectors: %d, extra bytes: %d\n", fin_size, tail_sectors, extra_bytes);
+
+    dsk_seek_to_granule(drv, gran);
+    for (int sector = 0; sector < tail_sectors; sector++)
+    {
+        fread(sector_data, sizeof(sector_data), 1, fin);
+        fwrite(sector_data, sizeof(sector_data), 1, drv->fp);
+    }
+
+    fread(sector_data, extra_bytes, 1, fin);
+    fwrite(sector_data, extra_bytes, 1, drv->fp);
+    
+    // mark last granule
+    drv->fat.granule_map[gran] = 0xC0 + tail_sectors;
+
+    // update bytes in last sector, respecting endianess
+    dirent->bytes_in_last_sector = htons(extra_bytes);
 
     fclose(fin);
 
@@ -596,10 +657,10 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
         int track = gran / DSK_GRANULES_PER_TRACK;
         int sector = 1 + (gran % DSK_GRANULES_PER_TRACK) * DSK_SECTORS_PER_GRANULE;
 
-        DSK_TRACE("t: %d, s: %d\n", track, sector);
+        dsk_printf("t: %d, s: %d\n", track, sector);
         dsk_seek_drive(drv, track, sector);
 
-        DSK_TRACE("extracting granule %2X\n", gran);
+        dsk_printf("extracting granule %2X\n", gran);
         for (int i = 0; i < DSK_SECTORS_PER_GRANULE; i++)
         {
             fread(sector_data, DSK_BYTES_DATA_PER_SECTOR, 1, drv->fp);
@@ -612,9 +673,15 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
 
     // write out partial granule
     int next_gran = drv->fat.granule_map[gran];
-    int tail_sectors = (next_gran & DSK_SECTOR_COUNT_MASK) - 1;
+    int tail_sectors = (next_gran & DSK_SECTOR_COUNT_MASK);
+    int bytes_in_last_sector = ntohs(dirent->bytes_in_last_sector);
 
-    DSK_TRACE("tail sectors in %02X: %d\n", gran, tail_sectors + 1);
+    dsk_printf("tail sectors in granule %02X: %d\n", gran, tail_sectors);
+
+    // extract full sectors
+    if (bytes_in_last_sector)
+        tail_sectors--;
+
     dsk_seek_to_granule(drv, gran);
     for (int i = 0; i < tail_sectors; i++)
     {
@@ -622,11 +689,14 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
         fwrite(sector_data, DSK_BYTES_DATA_PER_SECTOR, 1, fout);
     }
 
-    // write out partial sector
-    int bytes_in_last_sector = ntohs(dirent->bytes_in_last_sector);
-    DSK_TRACE("bytes in last sector: %d\n", bytes_in_last_sector);
-    fread(sector_data, bytes_in_last_sector, 1, drv->fp);
-    fwrite(sector_data, bytes_in_last_sector, 1, fout);
+    // extract partial sector
+    dsk_printf("bytes in last sector: %d\n", bytes_in_last_sector);
+
+    if (bytes_in_last_sector)
+    {
+        fread(sector_data, bytes_in_last_sector, 1, drv->fp);
+        fwrite(sector_data, bytes_in_last_sector, 1, fout);
+    }
 
     fclose(fout);
 

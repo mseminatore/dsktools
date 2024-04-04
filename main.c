@@ -127,12 +127,25 @@ int add_fn(DSK_Drive *drv, void *params)
         return FALSE;
     }
 
+    // loop for optional 
     char *pmode = strtok(NULL, " \n");
-    OpenMode mode = MODE_BINARY;
+    DSK_OPEN_MODE mode = DSK_MODE_BINARY;
     if (pmode && toupper(pmode[0]) == 'A')
-        mode = MODE_ASCII;
+        mode = DSK_MODE_ASCII;
 
-    dsk_add_file(drv, filename, mode);
+    char *ptype = strtok(NULL, " \n");
+    DSK_FILE_TYPE type = DSK_TYPE_ML;
+    if (ptype)
+    {
+        if (toupper(ptype[0]) == 'B')
+            type = DSK_TYPE_BASIC;
+        else if (toupper(ptype[0] == 'D'))
+            type = DSK_TYPE_DATA;
+        else if (toupper(ptype[0] == 'T'))
+            type = DSK_TYPE_TEXT;
+    }
+
+    dsk_add_file(drv, filename, mode, type);
     return TRUE;
 }
 

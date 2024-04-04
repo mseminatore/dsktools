@@ -47,8 +47,25 @@
 // offset in DSK to start of track/sector
 #define DSK_OFFSET(track, sector) (DSK_TRACK_OFFSET(track) + DSK_SECTOR_OFFSET(sector))
 
-typedef enum {DSK_UNMOUNTED, DSK_MOUNTED} DSK_DRIVE_STATUS;
-typedef enum {MODE_BINARY, MODE_ASCII} OpenMode;
+typedef enum
+{
+    DSK_UNMOUNTED, 
+    DSK_MOUNTED
+} DSK_DRIVE_STATUS;
+
+typedef enum
+{
+    DSK_MODE_BINARY, 
+    DSK_MODE_ASCII
+} DSK_OPEN_MODE;
+
+typedef enum
+{
+    DSK_TYPE_BASIC, 
+    DSK_TYPE_DATA, 
+    DSK_TYPE_ML, 
+    DSK_TYPE_TEXT
+} DSK_FILE_TYPE;
 
 typedef struct
 {
@@ -115,7 +132,7 @@ int dsk_dir(DSK_Drive *drv);
 int dsk_granule_map(DSK_Drive *drv);
 int dsk_free_bytes(DSK_Drive *drv);
 int dsk_free_granules(DSK_Drive *drv);
-int dsk_add_file(DSK_Drive *drv, const char *filename, OpenMode mode);
+int dsk_add_file(DSK_Drive *drv, const char *filename, DSK_OPEN_MODE mode, DSK_FILE_TYPE type);
 int dsk_extract_file(DSK_Drive *drv, const char *filename);
 DSK_Drive *dsk_new(const char *filename);
 int dsk_format(DSK_Drive *drv);
