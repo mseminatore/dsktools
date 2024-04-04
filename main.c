@@ -195,12 +195,20 @@ int del_fn(DSK_Drive *drv, void *params)
 }
 
 //---------------------------------
+// rename file1 to file2
+//---------------------------------
+int rename_fn(DSK_Drive *drv, void *params)
+{
+    return TRUE;
+}
+
+//---------------------------------
 // command table
 //---------------------------------
 Command cmds[] =
 {
     {"add", add_fn, "add file to DSK", CMD_SHOW },
-    {"del", del_fn, "delete file from DSK", CMD_SHOW },
+    {"del", del_fn, "delete file from DSK", CMD_HIDDEN },
     {"dir", dir_fn, "list directory contents", CMD_SHOW },
     {"dskini", format_fn, "format DSK", CMD_HIDDEN },
     {"extract", extract_fn, "extract file from DSK", CMD_SHOW },
@@ -208,14 +216,16 @@ Command cmds[] =
     {"free", free_fn, "report free space on drive", CMD_SHOW },
     {"grans", gran_map_fn, "show granule map", CMD_SHOW },
     {"help", help_fn, "list commands", CMD_SHOW },
+    {"kill", del_fn, "delete file from DSK", CMD_SHOW},
     {"ls", dir_fn, "list directory contents", CMD_HIDDEN },
     {"mount", mount_fn, "mount a DSK file", CMD_SHOW },
     {"new", new_fn, "create new DSK", CMD_SHOW },
-    {"unload", unmount_fn, "unmount current DSK file", CMD_HIDDEN },
-    {"unmount", unmount_fn, "unmount current DSK file", CMD_SHOW },
+    {"unload", unmount_fn, "unmount current DSK file", CMD_SHOW },
+    {"unmount", unmount_fn, "unmount current DSK file", CMD_HIDDEN },
     {"q", quit_fn , "quit app", CMD_HIDDEN },
     {"quit", quit_fn , "quit app", CMD_SHOW },
- 
+    // {"rename", rename_fn, "rename file", CMD_HIDDEN},
+
     { NULL, NULL , NULL}
 };
 
@@ -230,6 +240,7 @@ int exec_cmd(DSK_Drive *drv, char *cmd)
     {
         if (!strcmp(cmd, pCmd->cmd))
         {
+            // TODO - parse extra params and pass along instead of NULL?
             return pCmd->cmd_func(drv, NULL);
         }
     }
@@ -238,7 +249,9 @@ int exec_cmd(DSK_Drive *drv, char *cmd)
     return FALSE;
 }
 
-//
+//-------------------
+// main program start
+//-------------------
 int main(int argc, char *argv[])
 {
     char buf[SMALL_BUFFER];
@@ -262,4 +275,6 @@ int main(int argc, char *argv[])
         else
             puts("OK");
     }
+
+    return 0;
 }

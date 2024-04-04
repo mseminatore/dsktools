@@ -636,3 +636,11 @@ int dsk_format(DSK_Drive *drv)
 
     return E_OK;
 }
+
+//------------------------------------
+//
+//------------------------------------
+int dsk_rename(DSK_Drive *drv, const char *file1, const char *file2)
+{
+
+}
