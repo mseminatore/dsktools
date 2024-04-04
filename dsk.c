@@ -144,7 +144,7 @@ static int file_size(DSK_Drive *drv, DSK_DirEntry *dirent)
     // add in bytes in last sector
     size += ntohs(dirent->bytes_in_last_sector);
 
-    DSK_TRACE("%d total grans, %d sectors in last gran, %d bytes in last sector\n", grans, sectors, ntohs(dirent->bytes_in_last_sector));
+    dsk_printf("%d total grans, %d sectors in last gran, %d bytes in last sector\n", grans, sectors, ntohs(dirent->bytes_in_last_sector));
 
     return size;
 }
@@ -271,7 +271,7 @@ int dsk_dir(DSK_Drive *drv)
             strncpy(ext, dirent->ext, DSK_MAX_EXT);
 
             int grans = count_granules(drv, dirent->first_granule, NULL);
-#if 1
+#if 0
             dsk_printf("%8s %3s\t%d %c %d\n", file, ext, dirent->type, dirent->binary_ascii == 0? 'B' : 'A', grans);
 #else
             dsk_printf("%8s %3s\t%d %c %d (%d bytes)\n", file, ext, dirent->type, dirent->binary_ascii == 0? 'B' : 'A', grans, file_size(drv, dirent));
