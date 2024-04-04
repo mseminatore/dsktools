@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <ctype.h>
 #include "dsk.h"
 
 #define VERSION_STRING "0.1.0"
@@ -105,7 +106,7 @@ int help_fn(DSK_Drive *drv, void *params)
 }
 
 //---------------------------------
-//
+// display free space on DSK
 //---------------------------------
 int free_fn(DSK_Drive *drv, void *params)
 {
@@ -115,7 +116,7 @@ int free_fn(DSK_Drive *drv, void *params)
 }
 
 //---------------------------------
-//
+// add a file to the DSK
 //---------------------------------
 int add_fn(DSK_Drive *drv, void *params)
 {
@@ -126,7 +127,12 @@ int add_fn(DSK_Drive *drv, void *params)
         return FALSE;
     }
 
-    dsk_add_file(drv, filename);
+    char *pmode = strtok(NULL, " \n");
+    OpenMode mode = MODE_BINARY;
+    if (pmode && toupper(pmode[0]) == 'A')
+        mode = MODE_ASCII;
+
+    dsk_add_file(drv, filename, mode);
     return TRUE;
 }
 

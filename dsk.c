@@ -3,11 +3,37 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <string.h>
+#include <ctype.h>
 #include <assert.h>
 #include "dsk.h"
 
+#ifdef _WIN32
+#   define DIR_SEPARATOR '\\'
+#else
+#   define DIR_SEPARATOR '/'
+#endif
+
 static void dsk_default_output(const char *s);
 DSK_Print dsk_puts = dsk_default_output;
+
+//----------------------------------------
+// return pointer to the base filename without path
+//----------------------------------------
+static const char *dsk_basename(const char *s)
+{
+	if (!strchr(s, DIR_SEPARATOR))
+		return s;
+
+	const char *p = s + strlen(s);
+
+	for (; p != s; p--)
+		if (*p == DIR_SEPARATOR)
+		{
+			p++;
+			break;
+		}
+	return p;
+}
 
 //----------------------------------------
 // default output function
@@ -18,17 +44,9 @@ static void dsk_default_output(const char *s)
 }
 
 //----------------------------------------
-// override the default output function
-//----------------------------------------
-void dsk_set_output_function(DSK_Print f)
-{
-    dsk_puts = f;
-}
-
-//----------------------------------------
 // DSK formatted output function
 //----------------------------------------
-void dsk_printf(char *format, ...)
+static void dsk_printf(char *format, ...)
 {
 	char buf[DSK_PRINTF_BUF_SIZE];
 	va_list valist;
@@ -116,6 +134,58 @@ static int file_size(DSK_Drive *drv, DSK_DirEntry *dirent)
     DSK_TRACE("%d grans, %d sectors, %d bytes\n", grans, sectors, ntohs(dirent->bytes_in_last_sector));
 
     return size;
+}
+
+//------------------------------------
+//
+//------------------------------------
+static char *file_ncopy(char *dst, char *src, int n)
+{
+    while (n--)
+    {
+        if (*src == ' ' || *src == 0)
+            break;
+
+        *dst++ = *src++;
+    }
+    
+    *dst =0;
+
+    return dst;
+}
+
+//------------------------------------
+//
+//------------------------------------
+static DSK_DirEntry *find_file_in_dir(DSK_Drive *drv, const char *filename)
+{
+    char dirfile[DSK_MAX_FILENAME + DSK_MAX_EXT + 2];
+
+    // find dir entry
+    for (int i = 0; i < DSK_MAX_DIR_ENTRIES; i++)
+    {
+        DSK_DirEntry *dirent = &drv->dirs[i];
+
+        if (dirent->filename[0] == DSK_DIRENT_DELETED || DSK_DIRENT_FREE == (uint8_t)dirent->filename[0])
+            continue;
+
+        file_ncopy(dirfile, dirent->filename, DSK_MAX_FILENAME);
+        strcat(dirfile, ".");
+        strncat(dirfile, dirent->ext, DSK_MAX_EXT);
+
+        if (!strcasecmp(filename, dirfile))
+            return dirent;
+    }
+
+    return NULL;
+}
+
+//----------------------------------------
+// override the default output function
+//----------------------------------------
+void dsk_set_output_function(DSK_Print f)
+{
+    dsk_puts = f;
 }
 
 //----------------------------------------
@@ -295,11 +365,7 @@ DSK_Drive *dsk_mount_drive(const char *filename)
     dsk_seek_drive(drv, DSK_DIR_TRACK, DSK_DIRECTORY_SECTOR);
     fread(&drv->dirs, sizeof(DSK_DirEntry), DSK_MAX_DIR_ENTRIES, drv->fp);
 
-    // fixup endianess
-    // TODO - maybe we don't fix it here, instead fix it on each use
-    // for (int i = 0; i < DSK_MAX_DIR_ENTRIES; i++)
-    //     drv->dirs[i].bytes_in_last_sector = ntohs(drv->dirs[i].bytes_in_last_sector);
-
+    // save the DSK filename
     strcpy(drv->filename, filename);
     
     drv->drv_status = DSK_MOUNTED;
@@ -333,22 +399,84 @@ int dsk_unload_drive(DSK_Drive *drv)
 }
 
 //------------------------------------
-// add file to a mounted DSK file
+// find and return a free dir entry
 //------------------------------------
-int dsk_add_file(DSK_Drive *drv, const char *filename)
+static DSK_DirEntry *find_free_dir_entry(DSK_Drive *drv)
 {
-    char sector_data[DSK_BYTES_DATA_PER_SECTOR];
-
     assert(drv && drv->fp);
     if (!drv || !drv->fp)
     {
         dsk_printf("disk invalid\n");
+        return NULL;
+    }
+
+    // find dir entry
+    for (int i = 0; i < DSK_MAX_DIR_ENTRIES; i++)
+    {
+        DSK_DirEntry *dirent = &drv->dirs[i];
+
+        if (dirent->filename[0] == DSK_DIRENT_DELETED || DSK_DIRENT_FREE == (uint8_t)dirent->filename[0])
+            return dirent;
+    }
+
+    return NULL;
+}
+
+//------------------------------------
+// uppercase the string
+//------------------------------------
+static char *string_upper(char *s)
+{
+    char *pstr = s;
+
+    for (; *s; s++)
+    {
+        *s = toupper(*s);
+    }
+
+    return pstr;
+}
+
+//------------------------------------
+// add file to a mounted DSK file
+//------------------------------------
+int dsk_add_file(DSK_Drive *drv, const char *filename, OpenMode mode)
+{
+    char *pmode = "rb";
+    char sector_data[DSK_BYTES_DATA_PER_SECTOR];
+    char dest_filename[DSK_MAX_FILENAME + DSK_MAX_EXT + 2];
+
+    assert(drv && drv->fp);
+    if (!drv || !drv->fp)
+    {
+        dsk_printf("disk invalid.\n");
         return E_FAIL;
     }
 
-    // open file and get file size
-    // TODO - check filename.ext length
-    FILE *fin = fopen(filename, "rb");
+    // get dest filename and ensure upper case
+    strcpy(dest_filename, dsk_basename(filename));
+    string_upper(dest_filename);
+dsk_printf("adding file '%s'\n", dest_filename);
+
+    // check filename.ext length
+    if (strlen(filename) > DSK_MAX_FILENAME + DSK_MAX_EXT + 1)
+    {
+        dsk_printf("filename '%s' is too long.\n", dest_filename);
+        return E_FAIL;
+    }
+
+    // open the input file
+    if (mode == MODE_ASCII)
+        pmode = "rt";
+
+    FILE *fin = fopen(filename, pmode);
+    if (!fin)
+    {
+        dsk_printf("file not found.\n");
+        return E_FAIL;
+    }
+
+    // get the file size
     fseek(fin, 0, SEEK_END);
     long fin_size = ftell(fin);
     fseek(fin, 0, SEEK_SET);
@@ -356,17 +484,56 @@ int dsk_add_file(DSK_Drive *drv, const char *filename)
     // check that disk has space for file
     if (fin_size > dsk_free_bytes(drv))
     {
-        dsk_printf("out of space.");
+        dsk_printf("out of space.\n");
         fclose(fin);
+        return E_FAIL;
     }
 
-    // ensure upper case filename
     // see if file already exists on DSK
+    DSK_DirEntry *dirent = find_file_in_dir(drv, filename);
+    if (dirent)
+    {
+        dsk_printf("file already exists.\n");
+        fclose(fin);
+        return E_FAIL;
+    }
+
     // find first free directory entry
-    // DSK_DirEntry *dirent = find_first_free_dir_entry();
+    dirent = find_free_dir_entry(drv);
+    if (!dirent)
+    {
+        dsk_printf("drive is full.\n");
+        fclose(fin);
+        return E_FAIL;
+    }
+
     // update directory entry
-    // find first free cluster
+    int extension_index;
+    int i;
+    for (i = 0; i < DSK_MAX_FILENAME; i++)
+        dirent->filename[i] = ' ';
+    for (i = 0; i < DSK_MAX_EXT; i++)
+        dirent->ext[i] = ' ';
+
+    // copy in the filename, left justified, padded with spaces
+    for (i = 0; i < DSK_MAX_FILENAME; i++)
+    {
+        if (dest_filename[i] == '.')
+            break;
+
+        dirent->filename[i] = dest_filename[i];
+    }
+
+    // copy in the extension, left justified, padded with spaces
+    
+    dirent->binary_ascii = (mode == MODE_ASCII) ? 0xFF : 0;
+    dirent->type = (mode == MODE_ASCII) ? 3 : 2;
+
+    // find first free granule
+    // dirent->first_granule = 
+
     // copy data
+    // update bytes in last sector
 
     fclose(fin);
 
@@ -375,46 +542,6 @@ int dsk_add_file(DSK_Drive *drv, const char *filename)
     dsk_flush(drv);
 
     return E_OK;
-}
-
-//
-static char *file_ncopy(char *dst, char *src, int n)
-{
-    while (n--)
-    {
-        if (*src == ' ' || *src == 0)
-            break;
-
-        *dst++ = *src++;
-    }
-    
-    *dst =0;
-
-    return dst;
-}
-
-//
-static DSK_DirEntry *find_file_dir(DSK_Drive *drv, const char *filename)
-{
-    char dirfile[DSK_MAX_FILENAME + DSK_MAX_EXT + 2];
-
-    // find dir entry
-    for (int i = 0; i < DSK_MAX_DIR_ENTRIES; i++)
-    {
-        DSK_DirEntry *dirent = &drv->dirs[i];
-
-        if (dirent->filename[0] == DSK_DIRENT_DELETED || DSK_DIRENT_FREE == (uint8_t)dirent->filename[0])
-            continue;
-
-        file_ncopy(dirfile, dirent->filename, DSK_MAX_FILENAME);
-        strcat(dirfile, ".");
-        strncat(dirfile, dirent->ext, DSK_MAX_EXT);
-
-        if (!strcasecmp(filename, dirfile))
-            return dirent;
-    }
-
-    return NULL;
 }
 
 //------------------------------------
@@ -431,7 +558,7 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
         return E_FAIL;
     }
 
-    DSK_DirEntry *dirent = find_file_dir(drv, filename);
+    DSK_DirEntry *dirent = find_file_in_dir(drv, filename);
     if (!dirent)
     {
         dsk_printf("file not found.\n");
@@ -504,7 +631,7 @@ int dsk_del(DSK_Drive *drv, const char *filename)
         return E_FAIL;
     }
 
-    DSK_DirEntry *dirent = find_file_dir(drv, filename);
+    DSK_DirEntry *dirent = find_file_in_dir(drv, filename);
     if (!dirent)
     {
         dsk_printf("file not found.\n");

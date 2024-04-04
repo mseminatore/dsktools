@@ -16,8 +16,8 @@ add_library(dsk STATIC dsk.c)
 #
 # add the executables
 #
-add_executable(dsk_test main.c)
-target_link_libraries(dsk_test dsk)
+add_executable(dsktools main.c)
+target_link_libraries(dsktools dsk)
 
 # install targets
 #install(TARGETS dsk DESTINATION lib)
