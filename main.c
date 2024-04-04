@@ -28,7 +28,7 @@ DSK_Drive *g_drv = NULL;
 Command cmds[];
 
 //---------------------------------
-//
+// quit the program
 //---------------------------------
 int quit_fn(DSK_Drive *drv, void *params)
 {
@@ -37,7 +37,7 @@ int quit_fn(DSK_Drive *drv, void *params)
 }
 
 //---------------------------------
-//
+// display DSK directory
 //---------------------------------
 int dir_fn(DSK_Drive *drv, void *params)
 {
@@ -46,14 +46,14 @@ int dir_fn(DSK_Drive *drv, void *params)
 }
 
 //---------------------------------
-//
+// mount a DSK file
 //---------------------------------
 int mount_fn(DSK_Drive *drv, void *params)
 {
     char* filename = strtok(NULL, " \n");
     if (!filename)
     {
-        puts("missing filename");
+        puts("missing filename.");
         return FALSE;
     }
 
@@ -72,7 +72,7 @@ int mount_fn(DSK_Drive *drv, void *params)
 }
 
 //---------------------------------
-//
+// unmount the current DSK file
 //---------------------------------
 int unmount_fn(DSK_Drive *drv, void *params)
 {
@@ -81,7 +81,7 @@ int unmount_fn(DSK_Drive *drv, void *params)
 }
 
 //---------------------------------
-//
+// display the granule map
 //---------------------------------
 int gran_map_fn(DSK_Drive *drv, void *params)
 {
@@ -90,7 +90,7 @@ int gran_map_fn(DSK_Drive *drv, void *params)
 }
 
 //---------------------------------
-//
+// display program help
 //---------------------------------
 int help_fn(DSK_Drive *drv, void *params)
 {
@@ -123,7 +123,7 @@ int add_fn(DSK_Drive *drv, void *params)
     char* filename = strtok(NULL, " \n");
     if (!filename)
     {
-        puts("missing filename");
+        puts("missing filename.");
         return FALSE;
     }
 
@@ -137,14 +137,14 @@ int add_fn(DSK_Drive *drv, void *params)
 }
 
 //---------------------------------
-//
+// extract a file from the DSK
 //---------------------------------
 int extract_fn(DSK_Drive *drv, void *params)
 {
     char* filename = strtok(NULL, " \n");
     if (!filename)
     {
-        puts("missing filename");
+        puts("missing filename.");
         return FALSE;
     }
 
@@ -160,7 +160,7 @@ int new_fn(DSK_Drive *drv, void *params)
     char* filename = strtok(NULL, " \n");
     if (!filename)
     {
-        puts("missing filename");
+        puts("missing filename.");
         return FALSE;
     }
 
@@ -191,7 +191,7 @@ int del_fn(DSK_Drive *drv, void *params)
     char* filename = strtok(NULL, " \n");
     if (!filename)
     {
-        puts("missing filename");
+        puts("missing filename.");
         return FALSE;
     }
 
@@ -205,6 +205,16 @@ int del_fn(DSK_Drive *drv, void *params)
 //---------------------------------
 int rename_fn(DSK_Drive *drv, void *params)
 {
+    char *file1 = strtok(NULL, " \n");
+    char *file2 = strtok(NULL, " \n");
+    if (!file1 || !file2)
+    {
+        puts("missing filename.");
+        return FALSE;
+    }
+
+    dsk_rename(drv, file1, file2);
+
     return TRUE;
 }
 
@@ -230,7 +240,7 @@ Command cmds[] =
     {"unmount", unmount_fn, "unmount current DSK file", CMD_HIDDEN },
     {"q", quit_fn , "quit app", CMD_HIDDEN },
     {"quit", quit_fn , "quit app", CMD_SHOW },
-    // {"rename", rename_fn, "rename file", CMD_HIDDEN},
+    {"rename", rename_fn, "rename file", CMD_HIDDEN},
 
     { NULL, NULL , NULL}
 };

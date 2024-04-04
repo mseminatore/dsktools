@@ -438,6 +438,20 @@ static char *string_upper(char *s)
 }
 
 //------------------------------------
+// return the first free granule
+//------------------------------------
+static int find_first_free_granule(DSK_Drive *drv)
+{
+    for (int i = 0; i < DSK_TOTAL_GRANULES; i++)
+    {
+        if (drv->fat.granule_map[i] == DSK_GRANULE_FREE)
+            return i;
+    }
+
+    return -1;
+}
+
+//------------------------------------
 // add file to a mounted DSK file
 //------------------------------------
 int dsk_add_file(DSK_Drive *drv, const char *filename, OpenMode mode)
@@ -530,7 +544,7 @@ dsk_printf("adding file '%s'\n", dest_filename);
     dirent->type = (mode == MODE_ASCII) ? 3 : 2;
 
     // find first free granule
-    // dirent->first_granule = 
+    dirent->first_granule = find_first_free_granule(drv);
 
     // copy data
     // update bytes in last sector
@@ -756,18 +770,40 @@ int dsk_format(DSK_Drive *drv)
     for (int i = 0; i < DSK_MAX_DIR_ENTRIES; i++)
         drv->dirs[i].filename[0] = DSK_DIRENT_FREE;
 
-    drv->dirty_flag = 1;
-
     // flush changes to DSK file
+    drv->dirty_flag = 1;
     dsk_flush(drv);
 
     return E_OK;
 }
 
 //------------------------------------
-//
+// rename file1 to file2
 //------------------------------------
-int dsk_rename(DSK_Drive *drv, const char *file1, const char *file2)
+int dsk_rename(DSK_Drive *drv, char *file1, char *file2)
 {
+    string_upper(file1);
+    string_upper(file2);
 
+    if (strlen(file2) > DSK_MAX_FILENAME + DSK_MAX_EXT + 1)
+    {
+        dsk_printf("filename too long.\n");
+    }
+
+    DSK_DirEntry *dirent = find_file_in_dir(drv, file1);
+    if (!dirent)
+    {
+        dsk_printf("file not found.\n");
+        return E_FAIL;
+    }
+
+    // TODO - copy fhe filename
+    // TODO - copy the extension
+    // for (int i = 0; i < )
+
+    // flush changes to DSK file
+    drv->dirty_flag = 1;
+    dsk_flush(drv);
+
+    return E_OK;
 }
