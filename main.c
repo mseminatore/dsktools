@@ -137,11 +137,12 @@ int add_fn(DSK_Drive *drv, void *params)
     DSK_FILE_TYPE type = DSK_TYPE_ML;
     if (ptype)
     {
+
         if (toupper(ptype[0]) == 'B')
             type = DSK_TYPE_BASIC;
-        else if (toupper(ptype[0] == 'D'))
+        else if (toupper(ptype[0]) == 'D')
             type = DSK_TYPE_DATA;
-        else if (toupper(ptype[0] == 'T'))
+        else if (toupper(ptype[0]) == 'T')
             type = DSK_TYPE_TEXT;
     }
 
