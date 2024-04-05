@@ -255,6 +255,7 @@ Command cmds[] =
     {"q", quit_fn , "quit app", CMD_HIDDEN },
     {"quit", quit_fn , "quit app", CMD_SHOW },
     {"rename", rename_fn, "rename file", CMD_HIDDEN},
+    {"rm", del_fn, "delete file from DSK", CMD_HIDDEN},
 
     { NULL, NULL , NULL}
 };

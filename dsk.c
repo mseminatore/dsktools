@@ -863,6 +863,7 @@ int dsk_rename(DSK_Drive *drv, char *file1, char *file2)
     if (strlen(file2) > DSK_MAX_FILENAME + DSK_MAX_EXT + 1)
     {
         dsk_printf("filename too long.\n");
+        return E_FAIL;
     }
 
     DSK_DirEntry *dirent = find_file_in_dir(drv, file1);
