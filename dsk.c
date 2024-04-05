@@ -135,16 +135,13 @@ static int file_size(DSK_Drive *drv, DSK_DirEntry *dirent)
     // add in size of full sectors
     if (sectors)
     {
-        if (dirent->bytes_in_last_sector)
-            size += (sectors - 1) * DSK_BYTES_DATA_PER_SECTOR;
-        else
-            size += (sectors) * DSK_BYTES_DATA_PER_SECTOR;
+        size += (sectors) * DSK_BYTES_DATA_PER_SECTOR;
     }
 
     // add in bytes in last sector
     size += ntohs(dirent->bytes_in_last_sector);
 
-    dsk_printf("%d total grans, %d sectors in last gran, %d bytes in last sector\n", grans, sectors, ntohs(dirent->bytes_in_last_sector));
+    DSK_TRACE("%d total grans, %d sectors in last gran, %d bytes in last sector\n", grans, sectors, ntohs(dirent->bytes_in_last_sector));
 
     return size;
 }
@@ -275,7 +272,7 @@ int dsk_dir(DSK_Drive *drv)
             dsk_printf("%8s %3s\t%d %c %d\n", file, ext, dirent->type, dirent->binary_ascii == 0? 'B' : 'A', grans);
 #else
             dsk_printf("%8s %3s\t%d %c %d (%d bytes)\n", file, ext, dirent->type, dirent->binary_ascii == 0? 'B' : 'A', grans, file_size(drv, dirent));
-            granule_chain(drv, dirent);
+            // granule_chain(drv, dirent);
 #endif
         }
     }
@@ -459,7 +456,7 @@ static int find_first_free_granule(DSK_Drive *drv)
     {
         if (drv->fat.granule_map[i] == DSK_GRANULE_FREE)
         {
-            dsk_printf("returning free granule: %d\n", i);
+            DSK_TRACE("returning free granule: %d\n", i);
             return i;
         }
     }
@@ -633,6 +630,9 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
         return E_FAIL;
     }
 
+    // TODO - ensure upper case?
+//    string_upper(filename);
+
     DSK_DirEntry *dirent = find_file_in_dir(drv, filename);
     if (!dirent)
     {
@@ -641,6 +641,7 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
     }
 
     // open the output file
+    // TODO - open as text if ascii is set?
     FILE *fout = fopen(filename, "wb");
     if (!fout)
     {
@@ -657,10 +658,10 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
         int track = gran / DSK_GRANULES_PER_TRACK;
         int sector = 1 + (gran % DSK_GRANULES_PER_TRACK) * DSK_SECTORS_PER_GRANULE;
 
-        dsk_printf("t: %d, s: %d\n", track, sector);
+        DSK_TRACE("t: %d, s: %d\n", track, sector);
         dsk_seek_drive(drv, track, sector);
 
-        dsk_printf("extracting granule %2X\n", gran);
+        DSK_TRACE("extracting granule %2X\n", gran);
         for (int i = 0; i < DSK_SECTORS_PER_GRANULE; i++)
         {
             fread(sector_data, DSK_BYTES_DATA_PER_SECTOR, 1, drv->fp);
@@ -676,11 +677,11 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
     int tail_sectors = (next_gran & DSK_SECTOR_COUNT_MASK);
     int bytes_in_last_sector = ntohs(dirent->bytes_in_last_sector);
 
-    dsk_printf("tail sectors in granule %02X: %d\n", gran, tail_sectors);
+    DSK_TRACE("tail sectors in granule %02X: %d\n", gran, tail_sectors);
 
     // extract full sectors
-    if (bytes_in_last_sector)
-        tail_sectors--;
+    // if (bytes_in_last_sector)
+    //     tail_sectors--;
 
     dsk_seek_to_granule(drv, gran);
     for (int i = 0; i < tail_sectors; i++)
@@ -690,7 +691,7 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
     }
 
     // extract partial sector
-    dsk_printf("bytes in last sector: %d\n", bytes_in_last_sector);
+    DSK_TRACE("bytes in last sector: %d\n", bytes_in_last_sector);
 
     if (bytes_in_last_sector)
     {
@@ -750,6 +751,11 @@ DSK_Drive *dsk_new(const char *filename)
     char sector_data[DSK_BYTES_DATA_PER_SECTOR];
 
     assert(filename);
+
+    // TODO - check filename and ext length
+
+    // ensure upper case
+    string_upper(filename);
 
     FILE *fout = fopen(filename, "wb");
     if (!fout)
@@ -813,8 +819,7 @@ int dsk_flush(DSK_Drive *drv)
     dsk_seek_drive(drv, DSK_DIR_TRACK, DSK_DIRECTORY_SECTOR);
     fwrite(drv->dirs, sizeof(DSK_DirEntry), DSK_MAX_DIR_ENTRIES, drv->fp);
 
-    // fflush(drv->fp);
-
+    // clear dirty flag
     drv->dirty_flag = 0;
 
     return E_OK;

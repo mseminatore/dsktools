@@ -266,6 +266,9 @@ int exec_cmd(DSK_Drive *drv, char *cmd)
 {
     Command *pCmd = cmds;
 
+    if (!cmd)
+        return TRUE;
+
     for (; pCmd->cmd != NULL; pCmd++)
     {
         if (!strcmp(cmd, pCmd->cmd))
