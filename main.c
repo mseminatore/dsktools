@@ -242,7 +242,7 @@ Command cmds[] =
     {"dir", dir_fn, "list directory contents", CMD_SHOW },
     {"dskini", format_fn, "format DSK", CMD_HIDDEN },
     {"extract", extract_fn, "extract file from DSK", CMD_SHOW },
-    {"format", format_fn, "format DSK", CMD_SHOW },
+    {"format", format_fn, "format currently mounted DSK", CMD_SHOW },
     {"free", free_fn, "report free space on drive", CMD_SHOW },
     {"grans", gran_map_fn, "show granule map", CMD_SHOW },
     {"help", help_fn, "list commands", CMD_SHOW },
