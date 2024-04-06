@@ -38,6 +38,13 @@
 #   define E_FAIL -1
 #endif
 
+#ifdef _WIN32
+#   define BYTE_SWAP(data) (((data) >> 8) & 0x00FF) | (((data) << 8) & 0xFF00)
+#   define ntohs(s) BYTE_SWAP(s)
+#   define htons(s) BYTE_SWAP(s)
+#   define strcasecmp _stricmp
+#endif
+
 // offset in DSK to start of track t
 #define DSK_TRACK_OFFSET(t) ((t) * DSK_BYTES_DATA_PER_TRACK)
 

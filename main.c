@@ -13,7 +13,10 @@
 typedef int (*cmd_func_t)(DSK_Drive *drv, void *params);
 
 typedef enum {CMD_SHOW, CMD_HIDDEN} CommandVisibility;
-//
+
+//---------------------------------
+// command table entry
+//---------------------------------
 typedef struct
 {
     char* cmd;
@@ -22,7 +25,9 @@ typedef struct
     CommandVisibility hidden;
 } Command;
 
-//
+//---------------------------------
+// global vars
+//---------------------------------
 int done = FALSE;
 DSK_Drive *g_drv = NULL;
 Command cmds[];
