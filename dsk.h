@@ -40,8 +40,12 @@
 
 #ifdef _WIN32
 #   define BYTE_SWAP(data) (((data) >> 8) & 0x00FF) | (((data) << 8) & 0xFF00)
+#ifndef ntohs
 #   define ntohs(s) BYTE_SWAP(s)
+#endif
+#ifndef htons
 #   define htons(s) BYTE_SWAP(s)
+#endif
 #   define strcasecmp _stricmp
 #endif
 
