@@ -271,7 +271,7 @@ int dsk_dir(DSK_Drive *drv)
             strncpy(ext, dirent->ext, DSK_MAX_EXT);
 
             int grans = count_granules(drv, dirent->first_granule, NULL);
-#if 1
+#if 0
             dsk_printf("%8s %3s\t%d %c %d\n", file, ext, dirent->type, dirent->binary_ascii == 0? 'B' : 'A', grans);
 #else
             dsk_printf("%8s %3s\t%d %c %d (%d bytes)\n", file, ext, dirent->type, dirent->binary_ascii == 0? 'B' : 'A', grans, file_size(drv, dirent));
@@ -592,7 +592,7 @@ int dsk_add_file(DSK_Drive *drv, const char *filename, DSK_OPEN_MODE mode, DSK_F
     // find number of sectors used
     int tail_sectors = fin_size / DSK_BYTES_DATA_PER_SECTOR;
     int extra_bytes = fin_size % DSK_BYTES_DATA_PER_SECTOR;
-    DSK_TRACE("fin_size: %d, tail sectors: %d, extra bytes: %d\n", fin_size, tail_sectors, extra_bytes);
+    dsk_printf("fin_size: %d, tail sectors: %d, extra bytes: %d\n", fin_size, tail_sectors, extra_bytes);
 
     dsk_seek_to_granule(drv, gran);
     for (int sector = 0; sector < tail_sectors; sector++)
@@ -605,7 +605,7 @@ int dsk_add_file(DSK_Drive *drv, const char *filename, DSK_OPEN_MODE mode, DSK_F
     fwrite(sector_data, extra_bytes, 1, drv->fp);
     
     // mark last granule
-    drv->fat.granule_map[gran] = 0xC0 + tail_sectors;
+    drv->fat.granule_map[gran] = 0xC0 + tail_sectors + (extra_bytes > 0);
 
     // update bytes in last sector, respecting endianess
     dirent->bytes_in_last_sector = htons(extra_bytes);
@@ -843,6 +843,10 @@ int dsk_format(DSK_Drive *drv)
     // clear FAT granule entries
     for (int i = 0; i < DSK_TOTAL_GRANULES; i++)
         drv->fat.granule_map[i] = DSK_GRANULE_FREE;
+
+    // zero other FAT entries
+    for (int i = DSK_TOTAL_GRANULES; i < DSK_BYTES_DATA_PER_SECTOR; i++)
+        drv->fat.reserved[i] = 0;
 
     // clear Directory entries
     for (int i = 0; i < DSK_MAX_DIR_ENTRIES; i++)
