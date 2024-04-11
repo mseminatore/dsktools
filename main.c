@@ -288,6 +288,19 @@ int exec_cmd(DSK_Drive *drv, char *cmd)
     return FALSE;
 }
 
+//
+// from https://www.askapache.com/online-tools/figlet-ascii/
+//
+void banner()
+{
+    puts("     _     _    _              _     ");
+    puts("    | |   | |  | |            | |    ");
+    puts("  __| |___| | _| |_ ___   ___ | |___ ");
+    puts(" / _` / __| |/ / __/ _ \\ / _ \\| / __|");
+    puts("| (_| \\__ \\   <| || (_) | (_) | \\__ \\");
+    puts(" \\__,_|___/_|\\_\\\\__\\___/ \\___/|_|___/\n");
+}
+
 //-------------------
 // main program start
 //-------------------
@@ -299,6 +312,8 @@ int main(int argc, char *argv[])
 
     if (argc > 1)
         g_drv = dsk_mount_drive(argv[1]);
+
+    banner();
 
     printf("\nDSKTools v%s - Welcome to the CoCo DSK file tool!\n", VERSION_STRING);
     printf("\t(type help for list of commands)\n");
