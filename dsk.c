@@ -271,7 +271,7 @@ int dsk_dir(DSK_Drive *drv)
             strncpy(ext, dirent->ext, DSK_MAX_EXT);
 
             int grans = count_granules(drv, dirent->first_granule, NULL);
-#if 0
+#if 1
             dsk_printf("%8s %3s\t%d %c %d\n", file, ext, dirent->type, dirent->binary_ascii == 0? 'B' : 'A', grans);
 #else
             dsk_printf("%8s %3s\t%d %c %d (%d bytes)\n", file, ext, dirent->type, dirent->binary_ascii == 0? 'B' : 'A', grans, file_size(drv, dirent));
