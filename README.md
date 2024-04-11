@@ -1,7 +1,7 @@
 # dsktools
 
 DskTools is a library (libdsk) and application (dsktools) for working with 
-TRS-80 Color Computer (CoCo) virtual disc (.DSK) files in JVC format. No JVC header
+TRS-80 Color Computer (CoCo) virtual disk (.DSK) files in JVC format. No JVC header
 is created or recognized.
 
 > Note: At this time only the original 35 track (160K) format is supported.
@@ -10,16 +10,17 @@ is created or recognized.
 
 # Why create this library?
 
-First, I have a particular fondness for the TRS-80 Color Computer. It was the
+I have a particular fondness for the TRS-80 Color Computer. It was the
 first computer that I owned and I learned a great deal about programming from
-tinkering with that machine. I still have a functioning device and using the
-[CoCo SDC](https://retrorewind.ca/coco-sdc) from RetroRewind I am able to move
-files between my CoCo and other devices.
+tinkering with that machine. Amazingly I still have a functioning device! 
+Using the [CoCo SDC](https://retrorewind.ca/coco-sdc) from RetroRewind I am 
+able to move files between my CoCo and other devices via SD Card. The Coco SDC accesses within virtual disk files on the SD Card. So I needed a way to 
+manipulate DSK files.
 
-Second, while there are a number of existing tools for working with DSK files,
+While there are a number of existing tools for working with DSK files,
 I've never had the opportunity to work directly on the low-level aspects of a
 file system. The DSK format is clearly [documented](http://cocosdc.blogspot.com/p/sd-card-socket-sd-card-socket-is-push.html#:~:text=DSK%20Images&text=Images%20in%20this%20format%20consist,to%20precede%20the%20sector%20array.).
-That seened to make DSK files a good candidate for learning.
+That seemed to make DSK files a good candidate for learning.
 
 > The original physical floppy disc format is documented [here](https://colorcomputerarchive.com/repo/Documents/Manuals/Hardware/Color%20Computer%20Disk%20System%20(Tandy).pdf#page27).
 
