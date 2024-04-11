@@ -90,6 +90,7 @@ typedef struct
 
 //--------------------------------------
 // individual directory entry, 32 bytes
+// 16 bytes reserved
 //--------------------------------------
 typedef struct
 {
@@ -98,7 +99,7 @@ typedef struct
     uint8_t type;
     uint8_t binary_ascii;
     uint8_t first_granule;
-    uint16_t bytes_in_last_sector;  // NB: in big endian order?
+    uint16_t bytes_in_last_sector;  // NB: in big endian order!
     char reserved[16];
 } DSK_DirEntry;
 
@@ -108,7 +109,7 @@ typedef struct
 typedef struct
 {
     uint8_t granule_map[DSK_TOTAL_GRANULES];    // 68 = 34 data tracks * 2 granules / track
-    char reserved[256 - DSK_TOTAL_GRANULES];    // 256 - 68 = 188 reserved
+    char reserved[DSK_BYTES_DATA_PER_SECTOR - DSK_TOTAL_GRANULES];    // 256 - 68 = 188 reserved
 } DSK_FAT;
 
 //--------------------------------------
@@ -130,7 +131,6 @@ typedef void (*DSK_Print)(const char *s);
 #   define DSK_TRACE(...) fprintf(stderr, __VA_ARGS__)
 #else
 #   define DSK_TRACE(...)
-// #   define MT_TRACE __noop
 #endif
 
 //--------------------------------------
