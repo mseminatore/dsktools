@@ -186,6 +186,10 @@ static DSK_DirEntry *find_file_in_dir(DSK_Drive *drv, const char *filename)
         strcat(dirfile, ".");
         strncat(dirfile, dirent->ext, DSK_MAX_EXT);
 
+        for (int j = 0; j < strlen(dirfile); j++)
+            if (dirfile[j] == ' ')
+                dirfile[j] = 0;
+                
         if (!strcasecmp(filename, dirfile))
             return dirent;
     }
@@ -391,7 +395,6 @@ DSK_Drive *dsk_mount_drive(const char *filename)
 //------------------------------------
 int dsk_unload_drive(DSK_Drive *drv)
 {
-    // assert(drv && drv->fp);
     if (!drv || !drv->fp)
     {
         dsk_printf("no disk mounted.\n");
@@ -520,7 +523,7 @@ int dsk_add_file(DSK_Drive *drv, const char *filename, DSK_OPEN_MODE mode, DSK_F
     }
 
     // see if file already exists on DSK
-    DSK_DirEntry *dirent = find_file_in_dir(drv, filename);
+    DSK_DirEntry *dirent = find_file_in_dir(drv, dest_filename);
     if (dirent)
     {
         dsk_printf("file already exists.\n");
@@ -592,7 +595,7 @@ int dsk_add_file(DSK_Drive *drv, const char *filename, DSK_OPEN_MODE mode, DSK_F
     // find number of sectors used
     int tail_sectors = fin_size / DSK_BYTES_DATA_PER_SECTOR;
     int extra_bytes = fin_size % DSK_BYTES_DATA_PER_SECTOR;
-    dsk_printf("fin_size: %d, tail sectors: %d, extra bytes: %d\n", fin_size, tail_sectors, extra_bytes);
+    DSK_TRACE("fin_size: %d, tail sectors: %d, extra bytes: %d\n", fin_size, tail_sectors, extra_bytes);
 
     dsk_seek_to_granule(drv, gran);
     for (int sector = 0; sector < tail_sectors; sector++)

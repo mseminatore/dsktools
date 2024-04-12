@@ -132,7 +132,7 @@ int add_fn(DSK_Drive *drv, void *params)
         return FALSE;
     }
 
-    // loop for optional 
+    // look for optional file mode and type
     char *pmode = strtok(NULL, " \n");
     DSK_OPEN_MODE mode = DSK_MODE_BINARY;
     if (pmode && toupper(pmode[0]) == 'A')
@@ -142,7 +142,6 @@ int add_fn(DSK_Drive *drv, void *params)
     DSK_FILE_TYPE type = DSK_TYPE_ML;
     if (ptype)
     {
-
         if (toupper(ptype[0]) == 'B')
             type = DSK_TYPE_BASIC;
         else if (toupper(ptype[0]) == 'D')

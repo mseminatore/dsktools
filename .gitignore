@@ -4,6 +4,10 @@ dsktools
 *.bin
 .DS_Store
 *.rom
+dsk_add
+dsk_new
+dsk_format
+build/
 
 # Prerequisites
 *.d
