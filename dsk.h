@@ -28,6 +28,8 @@
 #define DSK_IS_LAST_GRANULE(g)      (!((g) < 0xC0))
 #define DSK_SECTOR_COUNT_MASK       31
 #define DSK_LAST_GRANULE            0x43
+#define DSK_ENCODING_ASCII          0xFF
+#define DSK_ENCODING_BINARY         0
 
 // error return codes
 #ifndef E_OK

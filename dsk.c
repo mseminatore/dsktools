@@ -279,9 +279,9 @@ int dsk_dir(DSK_Drive *drv)
 
             int grans = count_granules(drv, dirent->first_granule, NULL);
 #if 1
-            dsk_printf("%8s %3s\t%d %c %d\n", file, ext, dirent->type, dirent->binary_ascii == 0? 'B' : 'A', grans);
+            dsk_printf("%8s %3s\t%d %c %d\n", file, ext, dirent->type, dirent->binary_ascii == 0 ? 'B' : 'A', grans);
 #else
-            dsk_printf("%8s %3s\t%d %c %d (%d bytes)\n", file, ext, dirent->type, dirent->binary_ascii == 0? 'B' : 'A', grans, file_size(drv, dirent));
+            dsk_printf("%8s %3s\t%d %c %d (%d bytes)\n", file, ext, dirent->type, dirent->binary_ascii == 0 ? 'B' : 'A', grans, file_size(drv, dirent));
             granule_chain(drv, dirent);
 #endif
         }
@@ -567,7 +567,7 @@ int dsk_add_file(DSK_Drive *drv, const char *filename, DSK_OPEN_MODE mode, DSK_F
 
     DSK_TRACE("%s -> file: %s, ext: %s\n", dest_filename, basefile, ext);
     
-    dirent->binary_ascii = (mode == DSK_MODE_ASCII) ? 0xFF : 0;
+    dirent->binary_ascii = (mode == DSK_MODE_ASCII) ? DSK_ENCODING_ASCII : DSK_ENCODING_BINARY;
     dirent->type = type;
 
     // find first free granule
@@ -651,7 +651,11 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
 
     // open the output file
     // TODO - open as text if ascii is set?
-    FILE *fout = fopen(filename, "wb");
+    char* pmode = "wb";
+    if (dirent->binary_ascii == DSK_ENCODING_ASCII)
+        pmode = "wt";
+
+    FILE *fout = fopen(filename, pmode);
     if (!fout)
     {
         dsk_printf("file not found.\n");
