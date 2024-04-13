@@ -189,7 +189,7 @@ static DSK_DirEntry *find_file_in_dir(DSK_Drive *drv, const char *filename)
         for (int j = 0; j < strlen(dirfile); j++)
             if (dirfile[j] == ' ')
                 dirfile[j] = 0;
-                
+
         if (!strcasecmp(filename, dirfile))
             return dirent;
     }
@@ -876,14 +876,35 @@ int dsk_rename(DSK_Drive *drv, char *file1, char *file2)
         return E_FAIL;
     }
 
-    DSK_DirEntry *dirent = find_file_in_dir(drv, file1);
-    if (!dirent)
+    // ensure current file exists
+    DSK_DirEntry *dirent1 = find_file_in_dir(drv, file1);
+    if (!dirent1)
     {
-        dsk_printf("file not found.\n");
+        dsk_printf("file '%s' not found.\n", file1);
         return E_FAIL;
     }
 
-    // TODO - copy fhe filename
+    // ensure new file does not already exist
+    DSK_DirEntry *dirent2 = find_file_in_dir(drv, file2);
+    if (dirent2)
+    {
+        dsk_printf("file '%s' already exists.\n", file2);
+        return E_FAIL;
+    }
+
+    // copy in fhe filename, padding with spaces
+    char *pExt = strchr(file1, '.');
+    if (!pExt)
+        pExt = strchr(file1, '/');
+
+    for (int i = 0 ; i < DSK_MAX_FILENAME; i++)
+    {
+        if (i > strlen(file1) || file1[i] == '.' || file1[i] == '/')
+            dirent1->filename[i] = ' ';
+        else
+            dirent1->filename[i] = file1[i];
+    }
+
     // TODO - copy the extension
     // for (int i = 0; i < )
 
