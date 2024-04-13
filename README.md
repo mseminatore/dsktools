@@ -18,8 +18,8 @@ first computer that I owned and I learned a great deal about programming from
 tinkering with that machine. Amazingly I still have a functioning device! 
 Using the [CoCo SDC](https://retrorewind.ca/coco-sdc) from RetroRewind I am 
 able to move files between my CoCo and other devices via SD Card. The Coco SDC
-accesses within virtual disk files on the SD Card. So I needed a way to 
-manipulate DSK files.
+accesses files from within virtual disk drives on the SD Card. I needed a way to 
+manipulate DSK files in order to move files to/from my device.
 
 While there are a number of existing tools for working with DSK files,
 I've never had the opportunity to work directly on a file system. As the
