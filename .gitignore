@@ -7,6 +7,7 @@ dsktools
 dsk_add
 dsk_new
 dsk_format
+dsk_extract
 build/
 
 # Prerequisites
