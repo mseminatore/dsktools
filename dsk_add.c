@@ -20,12 +20,12 @@ int main(int argc, char *argv[])
     }
 
     // look for optional file mode and type
-    char *pmode = argv[3];
+    char *pmode = argc > 3 ? argv[3] : NULL;
     DSK_OPEN_MODE mode = DSK_MODE_BINARY;
     if (pmode && toupper(pmode[0]) == 'A')
         mode = DSK_MODE_ASCII;
 
-    char *ptype = argv[4];
+    char *ptype = argc > 4 ? argv[4] : NULL;
     DSK_FILE_TYPE type = DSK_TYPE_ML;
     if (ptype)
     {

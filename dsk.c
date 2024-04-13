@@ -19,7 +19,7 @@ DSK_Print dsk_puts = dsk_default_output;
 //----------------------------------------
 // return pointer to the base filename without path
 //----------------------------------------
-static const char *dsk_basename(const char *s)
+const char *dsk_basename(const char *s)
 {
 	if (!strchr(s, DIR_SEPARATOR))
 		return s;
@@ -167,9 +167,9 @@ static char *file_ncopy(char *dst, char *src, int n)
     return dst;
 }
 
-//------------------------------------
-//
-//------------------------------------
+//----------------------------------------------
+// look for the given file in the DSK directory
+//----------------------------------------------
 static DSK_DirEntry *find_file_in_dir(DSK_Drive *drv, const char *filename)
 {
     char dirfile[DSK_MAX_FILENAME + DSK_MAX_EXT + 2];
@@ -183,8 +183,11 @@ static DSK_DirEntry *find_file_in_dir(DSK_Drive *drv, const char *filename)
             continue;
 
         file_ncopy(dirfile, dirent->filename, DSK_MAX_FILENAME);
-        strcat(dirfile, ".");
-        strncat(dirfile, dirent->ext, DSK_MAX_EXT);
+        if (dirent->ext[0] != ' ')
+        {
+            strcat(dirfile, ".");
+            strncat(dirfile, dirent->ext, DSK_MAX_EXT);
+        }
 
         for (int j = 0; j < strlen(dirfile); j++)
             if (dirfile[j] == ' ')
@@ -865,48 +868,73 @@ int dsk_format(DSK_Drive *drv)
 //------------------------------------
 // rename file1 to file2
 //------------------------------------
-int dsk_rename(DSK_Drive *drv, char *file1, char *file2)
+int dsk_rename(DSK_Drive *drv, char *current_file, char *new_file)
 {
-    string_upper(file1);
-    string_upper(file2);
+    string_upper(current_file);
+    string_upper(new_file);
 
-    if (strlen(file2) > DSK_MAX_FILENAME + DSK_MAX_EXT + 1)
+    if (strlen(new_file) > DSK_MAX_FILENAME + DSK_MAX_EXT + 1)
     {
         dsk_printf("filename too long.\n");
         return E_FAIL;
     }
 
     // ensure current file exists
-    DSK_DirEntry *dirent1 = find_file_in_dir(drv, file1);
+    DSK_DirEntry *dirent1 = find_file_in_dir(drv, current_file);
     if (!dirent1)
     {
-        dsk_printf("file '%s' not found.\n", file1);
+        dsk_printf("file '%s' not found.\n", current_file);
         return E_FAIL;
     }
 
     // ensure new file does not already exist
-    DSK_DirEntry *dirent2 = find_file_in_dir(drv, file2);
+    DSK_DirEntry *dirent2 = find_file_in_dir(drv, new_file);
     if (dirent2)
     {
-        dsk_printf("file '%s' already exists.\n", file2);
+        dsk_printf("file '%s' already exists.\n", new_file);
         return E_FAIL;
     }
 
-    // copy in fhe filename, padding with spaces
-    char *pExt = strchr(file1, '.');
+    // copy in the new filename, padding with spaces
+    char *pExt = strchr(new_file, '.');
     if (!pExt)
-        pExt = strchr(file1, '/');
+        pExt = strchr(new_file, '/');
 
-    for (int i = 0 ; i < DSK_MAX_FILENAME; i++)
+    if (!pExt)
     {
-        if (i > strlen(file1) || file1[i] == '.' || file1[i] == '/')
-            dirent1->filename[i] = ' ';
-        else
-            dirent1->filename[i] = file1[i];
+        // no extension, just copy in name padded with spaces
+        for (int i = 0; i < DSK_MAX_FILENAME; i++)
+        {
+            if (i < strlen(new_file))
+                dirent1->filename[i] = new_file[i];
+            else
+                dirent1->filename[i] = ' ';
+        }
+    }
+    else
+    {
+        for (int i = 0; i < DSK_MAX_FILENAME; i++)
+        {
+            if (&new_file[i] < pExt)
+                dirent1->filename[i] = new_file[i];
+            else
+                dirent1->filename[i] = ' ';
+        }
     }
 
-    // TODO - copy the extension
-    // for (int i = 0; i < )
+    // copy in the new extension, padding with spaces
+
+    // skip the extension marker if present
+    if (pExt)
+        pExt++;
+
+    for (int i = 0; i < DSK_MAX_EXT; i++)
+    {
+        if (pExt && *pExt)
+            dirent1->ext[i] = *pExt++;
+        else
+            dirent1->ext[i] = ' ';
+    }
 
     // flush changes to DSK file
     drv->dirty_flag = 1;

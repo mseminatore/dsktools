@@ -4,7 +4,7 @@
 #include <ctype.h>
 #include "dsk.h"
 
-#define VERSION_STRING "0.1.0"
+#define VERSION_STRING "0.2.0"
 
 #define TRUE    1
 #define FALSE   0
@@ -258,7 +258,8 @@ Command cmds[] =
     {"unmount", unmount_fn, "unmount \t\t(unmount current DSK file)", CMD_SHOW },
     {"q", quit_fn , "q \t\t\t(quit dsktools)", CMD_HIDDEN },
     {"quit", quit_fn , "quit \t\t\t(quit dsktools)", CMD_SHOW },
-    {"rename", rename_fn, "rename file1 file2 \t(rename file1 to file2 on mounted DSK", CMD_HIDDEN},
+    {"rename", rename_fn, "rename file1 file2 \t(rename file1 to file2 on mounted DSK)", CMD_SHOW},
+    {"ren", rename_fn, "rename file1 file2 \t(rename file1 to file2 on mounted DSK)", CMD_HIDDEN},
     {"rm", del_fn, "rm \t(delete file from mounted DSK)", CMD_HIDDEN},
 
     { NULL, NULL , NULL}
@@ -319,7 +320,7 @@ int main(int argc, char *argv[])
 
     while (!done)
     {
-        printf("\ndsk>");
+        printf("\ndsktools>");
         fgets(buf, SMALL_BUFFER - 1, stdin);
 
         char* pCmd = strtok(buf, " \n");

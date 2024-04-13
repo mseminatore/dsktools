@@ -151,6 +151,7 @@ int dsk_flush(DSK_Drive *drv);
 int dsk_del(DSK_Drive *drv, const char *filename);
 void dsk_set_output_function(DSK_Print f);
 int dsk_rename(DSK_Drive *drv, char *file1, char *file2);
+const char* dsk_basename(const char* s);
 
 // future API ideas
 // int dsk_open();
