@@ -1,5 +1,8 @@
 # dsktools
 
+![GitHub License](https://img.shields.io/github/license/mseminatore/dsktools)
+[![CMake](https://github.com/mseminatore/dsktools/actions/workflows/cmake.yml/badge.svg)](https://github.com/mseminatore/dsktools/actions/workflows/cmake.yml)
+
 DskTools is a library (libdsk) and application (dsktools) for working with 
 TRS-80 Color Computer (CoCo) virtual disk (.DSK) files in JVC format. No JVC header
 is created or recognized.
