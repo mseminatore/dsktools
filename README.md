@@ -17,13 +17,16 @@ I have a particular fondness for the TRS-80 Color Computer. It was the
 first computer that I owned and I learned a great deal about programming from
 tinkering with that machine. Amazingly I still have a functioning device! 
 Using the [CoCo SDC](https://retrorewind.ca/coco-sdc) from RetroRewind I am 
-able to move files between my CoCo and other devices via SD Card. The Coco SDC accesses within virtual disk files on the SD Card. So I needed a way to 
-manipulate DSK files.
+able to move files between my CoCo and other devices via SD Card. The Coco SDC
+accesses files from within virtual disk drives on the SD Card. I needed a way to 
+manipulate DSK files in order to move files to/from my device.
 
 While there are a number of existing tools for working with DSK files,
-I've never had the opportunity to work directly on the low-level aspects of a
-file system. The DSK format is clearly [documented](http://cocosdc.blogspot.com/p/sd-card-socket-sd-card-socket-is-push.html#:~:text=DSK%20Images&text=Images%20in%20this%20format%20consist,to%20precede%20the%20sector%20array.).
-That seemed to make DSK files a good candidate for learning.
+I've never had the opportunity to work directly on a file system. As the
+DSK format is clearly
+[documented](http://cocosdc.blogspot.com/p/sd-card-socket-sd-card-socket-is-push.html#:~:text=DSK%20Images&text=Images%20in%20this%20format%20consist,to%20precede%20the%20sector%20array.)
+it seemed that DSK files were a good project for learning about the the 
+low-level aspects of file systems.
 
 > The original physical floppy disc format is documented [here](https://colorcomputerarchive.com/repo/Documents/Manuals/Hardware/Color%20Computer%20Disk%20System%20(Tandy).pdf#page27).
 
@@ -61,14 +64,13 @@ Below is an example of creating a new, empty DSK file.
 
 int main(int argc, char *argv[])
 {
-    // create a new blank DSK file
-    dsk_new(argv[1]);
-
-    return 0;
+    // create (and format) a new blank DSK file
+    return dsk_new(argv[1]);
 }
 ```
 
 And here is an example of mounting an existing DSK file and displaying the
+directory.
 
 ```C
 #include <stdio.h>
@@ -80,10 +82,12 @@ int main(int argc, char *argv[])
     DSK_Drive *drv = dsk_mount(argv[1]);
 
     // display the directory
-    dsk_dir(drv);
+    if (drv)
+        dsk_dir(drv);
 
     return 0;
 }
 ```
 
-A more complete example of the library is provided by the dsktools application.
+More complete examples of the library and its usage are provided by the `dsktools` 
+application and related tools.
