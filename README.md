@@ -35,7 +35,7 @@ Function | Description
 -------- | -----------
 dsk_seek_drive | seek to given track and sector
 dsk_mount_drive | mount a DSK file
-dsk_unload_drive | unmount a DSK file
+dsk_unmount_drive | unmount a DSK file
 dsk_dir | display directory of mounted DSK file
 dsk_free_bytes | return number of free bytes on DSK
 dsk_free_granules | return number of free granules on DSK

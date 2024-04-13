@@ -64,7 +64,7 @@ int mount_fn(DSK_Drive *drv, void *params)
 
     // unmount any already mounted drive
     if (g_drv)
-        dsk_unload_drive(g_drv);
+        dsk_unmount_drive(g_drv);
 
     g_drv = dsk_mount_drive(filename);
     if (!g_drv)
@@ -81,7 +81,7 @@ int mount_fn(DSK_Drive *drv, void *params)
 //---------------------------------
 int unmount_fn(DSK_Drive *drv, void *params)
 {
-    dsk_unload_drive(drv);
+    dsk_unmount_drive(drv);
     return TRUE;
 }
 
@@ -184,7 +184,7 @@ int new_fn(DSK_Drive *drv, void *params)
 
     // unmount current DSK
     if (drv)
-        dsk_unload_drive(drv);
+        dsk_unmount_drive(drv);
     
     g_drv = dsk_new(filename);
 

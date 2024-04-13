@@ -138,7 +138,7 @@ typedef void (*DSK_Print)(const char *s);
 //--------------------------------------
 int dsk_seek_drive(DSK_Drive *drv, int track, int sector);
 DSK_Drive *dsk_mount_drive(const char *filename);
-int dsk_unload_drive(DSK_Drive *drv);
+int dsk_unmount_drive(DSK_Drive *drv);
 int dsk_dir(DSK_Drive *drv);
 int dsk_granule_map(DSK_Drive *drv);
 int dsk_free_bytes(DSK_Drive *drv);

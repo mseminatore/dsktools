@@ -393,7 +393,7 @@ DSK_Drive *dsk_mount_drive(const char *filename)
 //------------------------------------
 // unmount a DSK file
 //------------------------------------
-int dsk_unload_drive(DSK_Drive *drv)
+int dsk_unmount_drive(DSK_Drive *drv)
 {
     if (!drv || !drv->fp)
     {
