@@ -26,5 +26,5 @@ int main(int argc, char *argv[])
 
     printf("%s formatted.\n", argv[1]);
 
-    return dsk_unload_drive(drv);
+    return dsk_unmount_drive(drv);
 }
