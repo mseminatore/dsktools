@@ -1,3 +1,7 @@
+#ifdef _WIN32
+#   define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -502,8 +506,10 @@ int dsk_add_file(DSK_Drive *drv, const char *filename, DSK_OPEN_MODE mode, DSK_F
     }
 
     // open the input file
+#ifndef _WIN32
     if (mode == DSK_MODE_ASCII)
         pmode = "rt";
+#endif
 
     FILE *fin = fopen(filename, pmode);
     if (!fin)
@@ -652,8 +658,11 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
     // open the output file
     // open as text if ascii is set?
     char* pmode = "wb";
+
+#ifndef _WIN32
     if (dirent->binary_ascii == DSK_ENCODING_ASCII)
         pmode = "wt";
+#endif
 
     FILE *fout = fopen(filename, pmode);
     if (!fout)
@@ -759,7 +768,7 @@ int dsk_del(DSK_Drive *drv, const char *filename)
 //------------------------------------
 // create a new DSK file
 //------------------------------------
-DSK_Drive *dsk_new(const char *filename)
+DSK_Drive *dsk_new(char *filename)
 {
     char sector_data[DSK_BYTES_DATA_PER_SECTOR];
 

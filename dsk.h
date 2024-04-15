@@ -147,7 +147,7 @@ int dsk_free_bytes(DSK_Drive *drv);
 int dsk_free_granules(DSK_Drive *drv);
 int dsk_add_file(DSK_Drive *drv, const char *filename, DSK_OPEN_MODE mode, DSK_FILE_TYPE type);
 int dsk_extract_file(DSK_Drive *drv, const char *filename);
-DSK_Drive *dsk_new(const char *filename);
+DSK_Drive *dsk_new(char *filename);
 int dsk_format(DSK_Drive *drv);
 int dsk_flush(DSK_Drive *drv);
 int dsk_del(DSK_Drive *drv, const char *filename);
