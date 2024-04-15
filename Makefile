@@ -7,7 +7,7 @@ CFLAGS	= -I. -g -Wall
 LIBNAME = libdsk.a
 LFLAGS += -L. -ldsk -lm
 
-all: $(LIBNAME) $(TARGET) dsk_new dsk_format dsk_add dsk_extract
+all: $(LIBNAME) $(TARGET) dsk_new dsk_format dsk_add dsk_extract dsk_rename dsk_del
 	
 $(LIBNAME): $(OBJS)
 	ar rcs $(LIBNAME) $(OBJS)
@@ -22,6 +22,12 @@ dsk_add: dsk_add.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
 
 dsk_extract: dsk_extract.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
+
+dsk_rename: dsk_rename.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
+
+dsk_del: dsk_del.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
 
 $(TARGET): $(OBJS) main.o

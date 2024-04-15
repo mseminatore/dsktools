@@ -8,6 +8,8 @@ dsk_add
 dsk_new
 dsk_format
 dsk_extract
+dsk_del
+dsk_rename
 build/
 
 # Prerequisites

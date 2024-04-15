@@ -650,7 +650,7 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
     }
 
     // open the output file
-    // TODO - open as text if ascii is set?
+    // open as text if ascii is set?
     char* pmode = "wb";
     if (dirent->binary_ascii == DSK_ENCODING_ASCII)
         pmode = "wt";
