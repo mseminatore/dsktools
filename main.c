@@ -4,7 +4,7 @@
 #include <ctype.h>
 #include "dsk.h"
 
-#define VERSION_STRING "0.2.0"
+#define VERSION_STRING "0.3.0"
 
 #define TRUE    1
 #define FALSE   0
@@ -254,13 +254,14 @@ Command cmds[] =
     {"ls", dir_fn, "ls \t(list directory of mounted DSK)", CMD_HIDDEN },
     {"mount", mount_fn, "mount filename \t(mount a DSK file)", CMD_SHOW },
     {"new", new_fn, "new \t\t\t(create new DSK)", CMD_SHOW },
-    {"unload", unmount_fn, "unload \t\t(unmount current DSK file)", CMD_HIDDEN },
-    {"unmount", unmount_fn, "unmount \t\t(unmount current DSK file)", CMD_SHOW },
+    {"open", mount_fn, "mount filename \t(mount a DSK file)", CMD_HIDDEN },
     {"q", quit_fn , "q \t\t\t(quit dsktools)", CMD_HIDDEN },
     {"quit", quit_fn , "quit \t\t\t(quit dsktools)", CMD_SHOW },
     {"rename", rename_fn, "rename file1 file2 \t(rename file1 to file2 on mounted DSK)", CMD_SHOW},
     {"ren", rename_fn, "rename file1 file2 \t(rename file1 to file2 on mounted DSK)", CMD_HIDDEN},
     {"rm", del_fn, "rm \t(delete file from mounted DSK)", CMD_HIDDEN},
+    {"unload", unmount_fn, "unload \t\t(unmount current DSK file)", CMD_HIDDEN },
+    {"unmount", unmount_fn, "unmount \t\t(unmount current DSK file)", CMD_SHOW },
 
     { NULL, NULL , NULL}
 };
