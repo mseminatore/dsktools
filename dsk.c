@@ -23,7 +23,7 @@ DSK_Print dsk_puts = dsk_default_output;
 //----------------------------------------
 // return pointer to the base filename without path
 //----------------------------------------
-const char *dsk_basename(const char *s)
+static const char *dsk_basename(const char *s)
 {
 	if (!strchr(s, DIR_SEPARATOR))
 		return s;
@@ -60,6 +60,46 @@ static void dsk_printf(char *format, ...)
 	va_end(valist);
 
 	dsk_puts(buf);
+}
+
+//----------------------------------------
+// return the size of a file
+//----------------------------------------
+static long dsk_get_file_size(DSK_Drive* drv)
+{
+    if (!drv || !drv->fp)
+    {
+        dsk_printf("disk invalid\n");
+        return 0;
+    }
+
+    long current_file_ptr = ftell(drv->fp); // get current file pointer
+
+    fseek(drv->fp, 0L, SEEK_END); // seek to the end of the file
+    long size = ftell(drv->fp);   // get the current file pointer position (size)
+    fseek(drv->fp, current_file_ptr, SEEK_SET); // seek back to the original file pointer
+    return size;
+}
+
+//----------------------------------------
+// returns TRUE if headerless JVC file
+//----------------------------------------
+static int dsk_is_simple_file(DSK_Drive* drv)
+{
+    if (!drv || !drv->fp)
+    {
+        dsk_printf("disk invalid\n");
+        return FALSE;
+    }
+
+    // get file size
+    long size = dsk_get_file_size(drv);
+
+    // if exact multiple of 256 then file is headerless
+    if (0 == (size % 256))
+        return TRUE;
+
+    return FALSE;
 }
 
 //----------------------------------------
@@ -377,6 +417,15 @@ DSK_Drive *dsk_mount_drive(const char *filename)
     if (!drv->fp)
     {
         dsk_printf("Disk (%s) not found.\n", filename);
+        free(drv);
+        return NULL;
+    }
+
+    // check for headerless JVC files
+    if (!dsk_is_simple_file(drv))
+    {
+        dsk_printf("Disk (%s) invalid. Must be headerless.", filename);
+        fclose(drv->fp);
         free(drv);
         return NULL;
     }

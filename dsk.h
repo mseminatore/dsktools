@@ -40,6 +40,14 @@
 #   define E_FAIL -1
 #endif
 
+#ifndef TRUE
+#   define TRUE 1
+#endif
+
+#ifndef FALSE
+#   define FALSE 0
+#endif
+
 #ifdef _WIN32
 #   define BYTE_SWAP(data) (((data) >> 8) & 0x00FF) | (((data) << 8) & 0xFF00)
 #ifndef ntohs
@@ -165,7 +173,7 @@ int dsk_flush(DSK_Drive *drv);
 int dsk_del(DSK_Drive *drv, const char *filename);
 void dsk_set_output_function(DSK_Print f);
 int dsk_rename(DSK_Drive *drv, char *file1, char *file2);
-const char* dsk_basename(const char* s);
+//const char* dsk_basename(const char* s);
 
 // future API ideas
 // int dsk_open();
