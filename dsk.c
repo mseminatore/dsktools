@@ -321,7 +321,7 @@ int dsk_seek_drive(DSK_Drive *drv, int track, int sector)
 }
 
 //------------------------------------
-//
+// seek to track/sector for granule
 //------------------------------------
 int dsk_seek_to_granule(DSK_Drive *drv, int granule)
 {
