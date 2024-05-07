@@ -4,7 +4,7 @@
 #include <ctype.h>
 #include "dsk.h"
 
-#define VERSION_STRING "0.3.0"
+#define VERSION_STRING "0.3.1"
 
 #define TRUE    1
 #define FALSE   0
@@ -82,6 +82,8 @@ int mount_fn(DSK_Drive *drv, void *params)
 int unmount_fn(DSK_Drive *drv, void *params)
 {
     dsk_unmount_drive(drv);
+    g_drv = NULL;
+
     return TRUE;
 }
 

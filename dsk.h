@@ -127,6 +127,18 @@ typedef struct
     int dirty_flag;
 } DSK_Drive;
 
+//--------------------------------------
+// represents a JVC header
+//--------------------------------------
+typedef struct
+{
+    uint8_t sectors_per_track;
+    uint8_t side_count;
+    uint8_t sector_size_code;
+    uint8_t first_sector_id;
+    uint8_t sector_attribute_flag;
+} DSK_HEADER;
+
 typedef void (*DSK_Print)(const char *s);
 
 #ifdef DSK_DEBUG
