@@ -4,7 +4,7 @@
 #include <ctype.h>
 #include "dsk.h"
 
-#define VERSION_STRING "0.3.0"
+#define VERSION_STRING "0.3.1"
 
 #define TRUE    1
 #define FALSE   0
