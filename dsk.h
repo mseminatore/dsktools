@@ -20,7 +20,7 @@
 #define DSK_GRANULES_PER_TRACK      2
 #define DSK_SECTORS_PER_GRANULE     (DSK_SECTORS_PER_TRACK / DSK_GRANULES_PER_TRACK)
 #define DSK_BYTES_PER_GRANULE       (DSK_SECTORS_PER_GRANULE * DSK_BYTES_DATA_PER_SECTOR)
-#define DSK_TOTAL_GRANULES          ((DSK_NUM_TRACKS - 1) * DSK_GRANULES_PER_TRACK)
+#define DSK_TOTAL_GRANULES          ((drv->num_tracks - 1) * DSK_GRANULES_PER_TRACK)
 #define DSK_MAX_FILENAME            8
 #define DSK_MAX_EXT                 3
 #define DSK_MAX_DIR_ENTRIES         72
@@ -29,7 +29,7 @@
 #define DSK_GRANULE_FREE            0xFF
 #define DSK_TOTAL_SIZE              (DSK_NUM_TRACKS * DSK_SECTORS_PER_TRACK * DSK_BYTES_DATA_PER_SECTOR)
 #define DSK_PRINTF_BUF_SIZE         256
-#define DSK_IS_LAST_GRANULE(g)      (!((g) < 0xC0))
+#define DSK_IS_LAST_GRANULE(g)      (((g) >= 0xC0) && ((g) <= 0xC9))
 #define DSK_SECTOR_COUNT_MASK       31
 #define DSK_LAST_GRANULE            0x43
 #define DSK_ENCODING_ASCII          0xFF
@@ -122,8 +122,9 @@ typedef struct
 //--------------------------------------
 typedef struct
 {
-    uint8_t granule_map[DSK_TOTAL_GRANULES];    // 68 = 34 data tracks * 2 granules / track
-    char reserved[DSK_BYTES_DATA_PER_SECTOR - DSK_TOTAL_GRANULES];    // 256 - 68 = 188 reserved
+    // 68 = 34 data tracks * 2 granules / track
+    // give the FAT the entire sector
+    uint8_t granule_map[DSK_BYTES_DATA_PER_SECTOR];
 } DSK_FAT;
 
 //--------------------------------------

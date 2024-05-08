@@ -921,7 +921,7 @@ int dsk_format(DSK_Drive *drv)
 
     // zero other FAT entries
     for (int i = DSK_TOTAL_GRANULES; i < DSK_BYTES_DATA_PER_SECTOR; i++)
-        drv->fat.reserved[i] = 0;
+        drv->fat.granule_map[i] = 0;
 
     // clear Directory entries
     for (int i = 0; i < DSK_MAX_DIR_ENTRIES; i++)
