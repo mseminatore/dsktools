@@ -4,8 +4,6 @@
 #include <ctype.h>
 #include "dsk.h"
 
-#define VERSION_STRING "0.3.1"
-
 #define TRUE    1
 #define FALSE   0
 #define SMALL_BUFFER    256
@@ -318,7 +316,7 @@ int main(int argc, char *argv[])
 
     banner();
 
-    printf("\nDSKTools v%s - Welcome to the CoCo DSK file tool!\n", VERSION_STRING);
+    printf("\nDSKTools v%s - Welcome to the CoCo DSK file tool!\n", DSK_VERSION_STRING);
     printf("\t(type help for list of commands)\n");
 
     while (!done)
