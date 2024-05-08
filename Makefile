@@ -34,4 +34,4 @@ $(TARGET): $(OBJS) main.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
 
 clean:
-	rm $(TARGET) $(LIBNAME) $(OBJS) *.o
+	rm $(TARGET) $(LIBNAME) $(OBJS) *.o dsk_new dsk_format dsk_add dsk_extract dsk_rename dsk_del

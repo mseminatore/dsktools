@@ -3,6 +3,11 @@
 
 #include <stdint.h>
 
+#ifdef __GNUC__
+#   include <arpa/inet.h>
+#endif
+
+
 //------------------------------------
 // DSK Drive properties
 //------------------------------------
