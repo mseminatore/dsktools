@@ -19,6 +19,7 @@
 #define DSK_FAT_SECTOR              2
 #define DSK_DIRECTORY_SECTOR        3
 #define DSK_GRANULES_PER_TRACK      2
+#define DSK_DIR_START_GRANULE       (DSK_DIR_TRACK * DSK_GRANULES_PER_TRACK)
 #define DSK_SECTORS_PER_GRANULE     (DSK_SECTORS_PER_TRACK / DSK_GRANULES_PER_TRACK)
 #define DSK_BYTES_PER_GRANULE       (DSK_SECTORS_PER_GRANULE * DSK_BYTES_DATA_PER_SECTOR)
 #define DSK_TOTAL_GRANULES          ((DSK_NUM_TRACKS - 1) * DSK_GRANULES_PER_TRACK)
@@ -73,18 +74,21 @@
 // offset in DSK to start of track/sector
 #define DSK_OFFSET(track, sector) (DSK_TRACK_OFFSET(track) + DSK_SECTOR_OFFSET(sector))
 
+// drive status enum
 typedef enum
 {
     DSK_UNMOUNTED, 
     DSK_MOUNTED
 } DSK_DRIVE_STATUS;
 
+// file modes
 typedef enum
 {
     DSK_MODE_BINARY, 
     DSK_MODE_ASCII
 } DSK_OPEN_MODE;
 
+// DSK file types
 typedef enum
 {
     DSK_TYPE_BASIC, 
@@ -93,11 +97,13 @@ typedef enum
     DSK_TYPE_TEXT
 } DSK_FILE_TYPE;
 
+// represents a DSK sector
 typedef struct
 {
     char data[DSK_BYTES_DATA_PER_SECTOR];
 } DSK_Sector;
 
+// represents a DSK track
 typedef struct
 {
     DSK_Sector sectors[DSK_SECTORS_PER_TRACK];
