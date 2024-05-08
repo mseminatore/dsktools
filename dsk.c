@@ -430,6 +430,13 @@ DSK_Drive *dsk_mount_drive(const char *filename)
         return NULL;
     }
 
+    // deduce tracks/sides from disk size
+    long file_size = dsk_get_file_size(drv);
+    int sectors = file_size / DSK_BYTES_DATA_PER_SECTOR;
+
+    drv->num_tracks = sectors / DSK_SECTORS_PER_TRACK;  // 35
+    drv->num_sides = 1;
+
     // read in the FAT
     dsk_seek_drive(drv, DSK_DIR_TRACK, DSK_FAT_SECTOR);
     fread(&drv->fat, sizeof(DSK_FAT), 1, drv->fp);

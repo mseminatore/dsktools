@@ -7,7 +7,6 @@
 #   include <arpa/inet.h>
 #endif
 
-
 //------------------------------------
 // DSK Drive properties
 //------------------------------------
@@ -136,8 +135,11 @@ typedef struct
     FILE *fp;
     DSK_FAT fat;
     DSK_DirEntry dirs[DSK_MAX_DIR_ENTRIES];
-    DSK_DRIVE_STATUS drv_status; // 0 - unmounted, 1 - mounted
-    int dirty_flag;
+    DSK_DRIVE_STATUS drv_status;    // 0 - unmounted, 1 - mounted
+    int dirty_flag;                 // true if FAT/DIR have changed since last flush/write
+
+    int num_tracks;
+    int num_sides;
 } DSK_Drive;
 
 //--------------------------------------
@@ -178,7 +180,6 @@ int dsk_flush(DSK_Drive *drv);
 int dsk_del(DSK_Drive *drv, const char *filename);
 void dsk_set_output_function(DSK_Print f);
 int dsk_rename(DSK_Drive *drv, char *file1, char *file2);
-//const char* dsk_basename(const char* s);
 
 // future API ideas
 // int dsk_open();
