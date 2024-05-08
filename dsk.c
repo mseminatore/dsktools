@@ -342,7 +342,7 @@ int dsk_dir(DSK_Drive *drv)
 int dsk_seek_drive(DSK_Drive *drv, int track, int sector)
 {
     assert(drv && drv->fp);
-    assert(track >= 0 && track < DSK_NUM_TRACKS);
+    assert(track >= 0 && track < drv->num_tracks);
     assert(sector >= 1 && sector <= DSK_SECTORS_PER_TRACK);
 
     if (!drv || !drv->fp)
