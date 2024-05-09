@@ -824,7 +824,7 @@ int dsk_del(DSK_Drive *drv, const char *filename)
 //------------------------------------
 // create a new DSK file
 //------------------------------------
-DSK_Drive *dsk_new(char *filename)
+DSK_Drive *dsk_new(char *filename, int tracks, int sides)
 {
     char sector_data[DSK_BYTES_DATA_PER_SECTOR];
 
@@ -845,7 +845,7 @@ DSK_Drive *dsk_new(char *filename)
     // write out empty DSK
     memset(sector_data, 0, DSK_BYTES_DATA_PER_SECTOR);
 
-    for (int track = 0; track < DSK_NUM_TRACKS; track++)
+    for (int track = 0; track < tracks * sides; track++)
     {
         for (int sector = 0; sector < DSK_SECTORS_PER_TRACK; sector++)
             fwrite(sector_data, sizeof(sector_data), 1, fout);

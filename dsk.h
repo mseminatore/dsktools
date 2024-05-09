@@ -10,7 +10,10 @@
 //------------------------------------
 // DSK Drive properties
 //------------------------------------
-#define DSK_NUM_TRACKS              35
+#define DSK_NUM_TRACKS              (drv->num_tracks)  // 35
+#define DSK_MIN_TRACKS              18  // enough room for DIR/FAT track
+#define DSK_MAX_TRACKS              80
+#define DSK_MAX_SIDES               2
 #define DSK_SECTORS_PER_TRACK       18
 #define DSK_BYTES_DATA_PER_SECTOR   256
 #define DSK_BYTES_DATA_PER_TRACK    (DSK_SECTORS_PER_TRACK * DSK_BYTES_DATA_PER_SECTOR)
@@ -175,7 +178,7 @@ int dsk_free_bytes(DSK_Drive *drv);
 int dsk_free_granules(DSK_Drive *drv);
 int dsk_add_file(DSK_Drive *drv, const char *filename, DSK_OPEN_MODE mode, DSK_FILE_TYPE type);
 int dsk_extract_file(DSK_Drive *drv, const char *filename);
-DSK_Drive *dsk_new(char *filename);
+DSK_Drive *dsk_new(char *filename, int tracks, int sides);
 int dsk_format(DSK_Drive *drv);
 int dsk_flush(DSK_Drive *drv);
 int dsk_del(DSK_Drive *drv, const char *filename);
