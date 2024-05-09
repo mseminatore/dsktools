@@ -7,9 +7,9 @@ DskTools is a library (libdsk) and application (dsktools) for working with
 TRS-80 Color Computer (CoCo) virtual disk (.DSK) files in JVC format. No JVC header
 is created or recognized.
 
-> Note: At this time only the original 35 track (160K) format is supported.
-> Support for different disc geometries is under consideration based on 
-> interest.
+> Note: By default the original 35 track (160K) format is supported. Starting with
+> v0.4.0 the dsk_new() API has been updated to allow for arbitrary track/side
+> configurations.
 
 # Why create this library?
 
