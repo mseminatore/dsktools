@@ -369,6 +369,13 @@ int dsk_seek_to_granule(DSK_Drive *drv, int granule)
     assert(granule >= 0 && granule <= DSK_LAST_GRANULE);
 
     int track = granule / DSK_GRANULES_PER_TRACK;
+
+    // skip FAT/DIR track
+    if (granule >= DSK_DIR_START_GRANULE )
+        track++;
+    
+    assert(track != DSK_DIR_TRACK);
+    
     int sector = 1 + (granule % DSK_GRANULES_PER_TRACK) * DSK_SECTORS_PER_GRANULE;
 
     return dsk_seek_drive(drv, track, sector);
