@@ -342,7 +342,7 @@ int dsk_dir(DSK_Drive *drv)
 int dsk_seek_drive(DSK_Drive *drv, int track, int sector)
 {
     assert(drv && drv->fp);
-    assert(track >= 0 && track < DSK_NUM_TRACKS);
+    assert(track >= 0 && track < drv->num_tracks);
     assert(sector >= 1 && sector <= DSK_SECTORS_PER_TRACK);
 
     if (!drv || !drv->fp)
@@ -436,6 +436,13 @@ DSK_Drive *dsk_mount_drive(const char *filename)
         free(drv);
         return NULL;
     }
+
+    // deduce tracks/sides from disk size
+    long file_size = dsk_get_file_size(drv);
+    int sectors = file_size / DSK_BYTES_DATA_PER_SECTOR;
+
+    drv->num_tracks = sectors / DSK_SECTORS_PER_TRACK;  // 35
+    drv->num_sides = 1;
 
     // read in the FAT
     dsk_seek_drive(drv, DSK_DIR_TRACK, DSK_FAT_SECTOR);
@@ -824,7 +831,7 @@ int dsk_del(DSK_Drive *drv, const char *filename)
 //------------------------------------
 // create a new DSK file
 //------------------------------------
-DSK_Drive *dsk_new(char *filename)
+DSK_Drive *dsk_new(char *filename, int tracks, int sides)
 {
     char sector_data[DSK_BYTES_DATA_PER_SECTOR];
 
@@ -845,7 +852,7 @@ DSK_Drive *dsk_new(char *filename)
     // write out empty DSK
     memset(sector_data, 0, DSK_BYTES_DATA_PER_SECTOR);
 
-    for (int track = 0; track < DSK_NUM_TRACKS; track++)
+    for (int track = 0; track < tracks * sides; track++)
     {
         for (int sector = 0; sector < DSK_SECTORS_PER_TRACK; sector++)
             fwrite(sector_data, sizeof(sector_data), 1, fout);
@@ -921,7 +928,7 @@ int dsk_format(DSK_Drive *drv)
 
     // zero other FAT entries
     for (int i = DSK_TOTAL_GRANULES; i < DSK_BYTES_DATA_PER_SECTOR; i++)
-        drv->fat.reserved[i] = 0;
+        drv->fat.granule_map[i] = 0;
 
     // clear Directory entries
     for (int i = 0; i < DSK_MAX_DIR_ENTRIES; i++)

@@ -12,7 +12,10 @@
 //------------------------------------
 // DSK Drive properties
 //------------------------------------
-#define DSK_NUM_TRACKS              35
+#define DSK_NUM_TRACKS              (drv->num_tracks)  // 35
+#define DSK_MIN_TRACKS              18  // enough room for DIR/FAT track
+#define DSK_MAX_TRACKS              80
+#define DSK_MAX_SIDES               2
 #define DSK_SECTORS_PER_TRACK       18
 #define DSK_BYTES_DATA_PER_SECTOR   256
 #define DSK_BYTES_DATA_PER_TRACK    (DSK_SECTORS_PER_TRACK * DSK_BYTES_DATA_PER_SECTOR)
@@ -23,7 +26,7 @@
 #define DSK_DIR_START_GRANULE       (DSK_DIR_TRACK * DSK_GRANULES_PER_TRACK)
 #define DSK_SECTORS_PER_GRANULE     (DSK_SECTORS_PER_TRACK / DSK_GRANULES_PER_TRACK)
 #define DSK_BYTES_PER_GRANULE       (DSK_SECTORS_PER_GRANULE * DSK_BYTES_DATA_PER_SECTOR)
-#define DSK_TOTAL_GRANULES          ((DSK_NUM_TRACKS - 1) * DSK_GRANULES_PER_TRACK)
+#define DSK_TOTAL_GRANULES          ((drv->num_tracks - 1) * DSK_GRANULES_PER_TRACK)
 #define DSK_MAX_FILENAME            8
 #define DSK_MAX_EXT                 3
 #define DSK_MAX_DIR_ENTRIES         72
@@ -32,7 +35,7 @@
 #define DSK_GRANULE_FREE            0xFF
 #define DSK_TOTAL_SIZE              (DSK_NUM_TRACKS * DSK_SECTORS_PER_TRACK * DSK_BYTES_DATA_PER_SECTOR)
 #define DSK_PRINTF_BUF_SIZE         256
-#define DSK_IS_LAST_GRANULE(g)      (!((g) < 0xC0))
+#define DSK_IS_LAST_GRANULE(g)      (((g) >= 0xC0) && ((g) <= 0xC9))
 #define DSK_SECTOR_COUNT_MASK       31
 #define DSK_LAST_GRANULE            0x43
 #define DSK_ENCODING_ASCII          0xFF
@@ -130,8 +133,9 @@ typedef struct
 //--------------------------------------
 typedef struct
 {
-    uint8_t granule_map[DSK_TOTAL_GRANULES];    // 68 = 34 data tracks * 2 granules / track
-    char reserved[DSK_BYTES_DATA_PER_SECTOR - DSK_TOTAL_GRANULES];    // 256 - 68 = 188 reserved
+    // 68 = 34 data tracks * 2 granules / track
+    // give the FAT the entire sector
+    uint8_t granule_map[DSK_BYTES_DATA_PER_SECTOR];
 } DSK_FAT;
 
 //--------------------------------------
@@ -143,8 +147,11 @@ typedef struct
     FILE *fp;
     DSK_FAT fat;
     DSK_DirEntry dirs[DSK_MAX_DIR_ENTRIES];
-    DSK_DRIVE_STATUS drv_status; // 0 - unmounted, 1 - mounted
-    int dirty_flag;
+    DSK_DRIVE_STATUS drv_status;    // 0 - unmounted, 1 - mounted
+    int dirty_flag;                 // true if FAT/DIR have changed since last flush/write
+
+    int num_tracks;
+    int num_sides;
 } DSK_Drive;
 
 //--------------------------------------
@@ -179,13 +186,12 @@ int dsk_free_bytes(DSK_Drive *drv);
 int dsk_free_granules(DSK_Drive *drv);
 int dsk_add_file(DSK_Drive *drv, const char *filename, DSK_OPEN_MODE mode, DSK_FILE_TYPE type);
 int dsk_extract_file(DSK_Drive *drv, const char *filename);
-DSK_Drive *dsk_new(char *filename);
+DSK_Drive *dsk_new(char *filename, int tracks, int sides);
 int dsk_format(DSK_Drive *drv);
 int dsk_flush(DSK_Drive *drv);
 int dsk_del(DSK_Drive *drv, const char *filename);
 void dsk_set_output_function(DSK_Print f);
 int dsk_rename(DSK_Drive *drv, char *file1, char *file2);
-//const char* dsk_basename(const char* s);
 
 // future API ideas
 // int dsk_open();

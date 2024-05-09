@@ -1,11 +1,10 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
 #include "dsk.h"
 
-#define TRUE    1
-#define FALSE   0
 #define SMALL_BUFFER    256
 
 typedef int (*cmd_func_t)(DSK_Drive *drv, void *params);
@@ -175,6 +174,9 @@ int extract_fn(DSK_Drive *drv, void *params)
 //---------------------------------
 int new_fn(DSK_Drive *drv, void *params)
 {
+    int tracks = 35;
+    int sides = 1;
+
     char* filename = strtok(NULL, " \n");
     if (!filename)
     {
@@ -182,11 +184,27 @@ int new_fn(DSK_Drive *drv, void *params)
         return FALSE;
     }
 
-    // unmount current DSK
+    char *ptracks = strtok(NULL, " \n");
+    if (ptracks)
+    {
+        tracks = atoi(ptracks);
+        if (tracks < DSK_MIN_TRACKS) tracks = DSK_MIN_TRACKS;
+        if (tracks > DSK_MAX_TRACKS) tracks = DSK_MAX_TRACKS;
+    }
+
+    char *psides = strtok(NULL, " \n");
+    if (psides)
+    {
+        sides = atoi(psides);
+        if (sides < 1) sides = 1;
+        if (sides > DSK_MAX_SIDES) sides = DSK_MAX_SIDES;
+    }
+
+    // unmount current DSK if present
     if (drv)
         dsk_unmount_drive(drv);
-    
-    g_drv = dsk_new(filename);
+
+    g_drv = dsk_new(filename, tracks, sides);
 
     return TRUE;
 }
@@ -253,7 +271,7 @@ Command cmds[] =
     {"kill", del_fn, "kill filename \t(delete file from mounted DSK)", CMD_SHOW},
     {"ls", dir_fn, "ls \t(list directory of mounted DSK)", CMD_HIDDEN },
     {"mount", mount_fn, "mount filename \t(mount a DSK file)", CMD_SHOW },
-    {"new", new_fn, "new \t\t\t(create new DSK)", CMD_SHOW },
+    {"new", new_fn, "new file [trks]\t(create new DSK)", CMD_SHOW },
     {"open", mount_fn, "mount filename \t(mount a DSK file)", CMD_HIDDEN },
     {"q", quit_fn , "q \t\t\t(quit dsktools)", CMD_HIDDEN },
     {"quit", quit_fn , "quit \t\t\t(quit dsktools)", CMD_SHOW },
