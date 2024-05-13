@@ -541,6 +541,18 @@ static int find_first_free_granule(DSK_Drive *drv)
 }
 
 //------------------------------------
+//
+//------------------------------------
+void translate_crlf(char *blk, size_t size)
+{
+    for (int i = 0; i < size; i++)
+    {
+        if (blk[i] == 0x0a)
+            blk[i] = 0x0d;
+    }
+}
+
+//------------------------------------
 // add file to a mounted DSK file
 //------------------------------------
 int dsk_add_file(DSK_Drive *drv, const char *filename, DSK_OPEN_MODE mode, DSK_FILE_TYPE type)
@@ -650,6 +662,7 @@ int dsk_add_file(DSK_Drive *drv, const char *filename, DSK_OPEN_MODE mode, DSK_F
         for (int sector = 0; sector < DSK_SECTORS_PER_GRANULE; sector++)
         {
             fread(sector_data, sizeof(sector_data), 1, fin);
+            translate_crlf(sector_data, sizeof(sector_data));
             fwrite(sector_data, sizeof(sector_data), 1, drv->fp);
         }
 
@@ -673,10 +686,12 @@ int dsk_add_file(DSK_Drive *drv, const char *filename, DSK_OPEN_MODE mode, DSK_F
     for (int sector = 0; sector < tail_sectors; sector++)
     {
         fread(sector_data, sizeof(sector_data), 1, fin);
+        translate_crlf(sector_data, sizeof(sector_data));
         fwrite(sector_data, sizeof(sector_data), 1, drv->fp);
     }
 
     fread(sector_data, extra_bytes, 1, fin);
+    translate_crlf(sector_data, extra_bytes);
     fwrite(sector_data, extra_bytes, 1, drv->fp);
     
     // mark last granule
