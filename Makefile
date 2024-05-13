@@ -12,22 +12,22 @@ all: $(LIBNAME) $(TARGET) dsk_new dsk_format dsk_add dsk_extract dsk_rename dsk_
 $(LIBNAME): $(OBJS)
 	ar rcs $(LIBNAME) $(OBJS)
 
-dsk_new: dsk_new.o
+dsk_new: dsk_new.o $(LIBNAME)
 	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
 
-dsk_format: dsk_format.o
+dsk_format: dsk_format.o $(LIBNAME)
 	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
 
-dsk_add: dsk_add.o
+dsk_add: dsk_add.o $(LIBNAME)
 	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
 
-dsk_extract: dsk_extract.o
+dsk_extract: dsk_extract.o $(LIBNAME)
 	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
 
-dsk_rename: dsk_rename.o
+dsk_rename: dsk_rename.o $(LIBNAME)
 	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
 
-dsk_del: dsk_del.o
+dsk_del: dsk_del.o $(LIBNAME)
 	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
 
 $(TARGET): $(OBJS) main.o

@@ -804,7 +804,7 @@ int dsk_del(DSK_Drive *drv, const char *filename)
     DSK_DirEntry *dirent = find_file_in_dir(drv, filename);
     if (!dirent)
     {
-        dsk_printf("file not found.\n");
+        dsk_printf("file '%s' not found.\n", filename);
         return E_FAIL;
     }
 
