@@ -543,12 +543,24 @@ static int find_first_free_granule(DSK_Drive *drv)
 //------------------------------------
 //
 //------------------------------------
-void translate_crlf(char *blk, size_t size)
+void translate_crlf_read(char *blk, size_t size)
 {
     for (int i = 0; i < size; i++)
     {
         if (blk[i] == 0x0a)
             blk[i] = 0x0d;
+    }
+}
+
+//------------------------------------
+//
+//------------------------------------
+void translate_crlf_write(char *blk, size_t size)
+{
+    for (int i = 0; i < size; i++)
+    {
+        if (blk[i] == 0x0d)
+            blk[i] = 0x0a;
     }
 }
 
@@ -662,7 +674,8 @@ int dsk_add_file(DSK_Drive *drv, const char *filename, DSK_OPEN_MODE mode, DSK_F
         for (int sector = 0; sector < DSK_SECTORS_PER_GRANULE; sector++)
         {
             fread(sector_data, sizeof(sector_data), 1, fin);
-            translate_crlf(sector_data, sizeof(sector_data));
+            if (dirent->binary_ascii == DSK_ENCODING_ASCII)
+                translate_crlf_read(sector_data, sizeof(sector_data));
             fwrite(sector_data, sizeof(sector_data), 1, drv->fp);
         }
 
@@ -686,12 +699,14 @@ int dsk_add_file(DSK_Drive *drv, const char *filename, DSK_OPEN_MODE mode, DSK_F
     for (int sector = 0; sector < tail_sectors; sector++)
     {
         fread(sector_data, sizeof(sector_data), 1, fin);
-        translate_crlf(sector_data, sizeof(sector_data));
+        if (dirent->binary_ascii == DSK_ENCODING_ASCII)
+            translate_crlf_read(sector_data, sizeof(sector_data));
         fwrite(sector_data, sizeof(sector_data), 1, drv->fp);
     }
 
     fread(sector_data, extra_bytes, 1, fin);
-    translate_crlf(sector_data, extra_bytes);
+    if (dirent->binary_ascii == DSK_ENCODING_ASCII)
+        translate_crlf_read(sector_data, extra_bytes);
     fwrite(sector_data, extra_bytes, 1, drv->fp);
     
     // mark last granule
@@ -765,6 +780,8 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
         for (int i = 0; i < DSK_SECTORS_PER_GRANULE; i++)
         {
             fread(sector_data, DSK_BYTES_DATA_PER_SECTOR, 1, drv->fp);
+            if (dirent->binary_ascii == DSK_ENCODING_ASCII)
+                translate_crlf_write(sector_data, DSK_BYTES_DATA_PER_SECTOR);
             fwrite(sector_data, DSK_BYTES_DATA_PER_SECTOR, 1, fout);
         }
 
@@ -787,6 +804,8 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
     for (int i = 0; i < tail_sectors; i++)
     {
         fread(sector_data, DSK_BYTES_DATA_PER_SECTOR, 1, drv->fp);
+        if (dirent->binary_ascii == DSK_ENCODING_ASCII)
+            translate_crlf_write(sector_data, DSK_BYTES_DATA_PER_SECTOR);
         fwrite(sector_data, DSK_BYTES_DATA_PER_SECTOR, 1, fout);
     }
 
@@ -796,6 +815,8 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
     if (bytes_in_last_sector)
     {
         fread(sector_data, bytes_in_last_sector, 1, drv->fp);
+        if (dirent->binary_ascii == DSK_ENCODING_ASCII)
+            translate_crlf_write(sector_data, bytes_in_last_sector);
         fwrite(sector_data, bytes_in_last_sector, 1, fout);
     }
 
