@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
     if (dsk_del(drv, argv[1]))
         return E_FAIL;
 
-    printf("file '%s' deleted.\n", argv[1]);
+    printf("dsk_del: file '%s' deleted.\n", argv[1]);
 
     return dsk_unmount_drive(drv);
 }

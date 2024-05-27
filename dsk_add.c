@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
     if (dsk_add_file(drv, argv[1], mode, type))
         return E_FAIL;
 
-    printf("%s added.\n", argv[1]);
+    printf("dsk_add: file '%s' added.\n", argv[1]);
 
     return dsk_unmount_drive(drv);
 }
