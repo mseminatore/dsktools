@@ -33,5 +33,8 @@ dsk_del: dsk_del.o $(LIBNAME)
 $(TARGET): $(OBJS) main.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
 
+install:
+	sudo ./links.sh
+	
 clean:
 	rm $(TARGET) $(LIBNAME) $(OBJS) *.o dsk_new dsk_format dsk_add dsk_extract dsk_rename dsk_del
