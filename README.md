@@ -30,11 +30,13 @@ low-level aspects of file systems.
 
 > The original physical floppy disc format is documented [here](https://colorcomputerarchive.com/repo/Documents/Manuals/Hardware/Color%20Computer%20Disk%20System%20(Tandy).pdf#page27).
 
-Interestingly, Microsoft licensed Basic-69 to Tandy for the Color Computer. This
-became the basis of the Color BASIC implementation. And the Disc Extended Color 
-Basic uses an early form of the 8-bit FAT file system from BASIC-80. Though most of
-us know about FAT from PC-DOS and MS-DOS. So this project gave me an opportunity 
-to explore the implementation of a FAT-based system.
+Interestingly, Microsoft licensed [Basic-69](https://en.wikipedia.org/wiki/Microsoft_BASIC#BASIC-68_and_BASIC-69)
+to Tandy for the Color Computer. This became the basis of the Color BASIC 
+implementation. And the later Disk Extended Color Basic ("DECB") uses an early form
+of the [8-bit FAT](https://en.wikipedia.org/wiki/File_Allocation_Table#FAT8) 
+file system from  Microsoft BASIC-80. Though most of us know about FAT from PC-DOS 
+and MS-DOS. So this project gave me an opportunity to explore the implementation 
+of a FAT-based system.
 
 # Library functions
 
