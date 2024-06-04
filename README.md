@@ -30,6 +30,11 @@ low-level aspects of file systems.
 
 > The original physical floppy disc format is documented [here](https://colorcomputerarchive.com/repo/Documents/Manuals/Hardware/Color%20Computer%20Disk%20System%20(Tandy).pdf#page27).
 
+Interestingly, Microsoft licensed the Color BASIC implementation to Tandy for 
+the Color Computer. And the Disc Extended Color Basic uses an early form of the
+FAT file system as we know it from PC-DOS and MS-DOS. So this project gave me 
+an opportunity to explore a FAT-based system.
+
 # Library functions
 
 The libdsk library provides a number of functions for working with DSK files.
