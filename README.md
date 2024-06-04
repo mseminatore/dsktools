@@ -32,8 +32,9 @@ low-level aspects of file systems.
 
 Interestingly, Microsoft licensed Basic-69 to Tandy for the Color Computer. This
 became the basis of the Color BASIC implementation. And the Disc Extended Color 
-Basic uses an early form of the FAT file system as we know it from PC-DOS and 
-MS-DOS. So this project gave me an opportunity to explore a FAT-based system.
+Basic uses an early form of the 8-bit FAT file system from BASIC-80. Though most of
+us know about FAT from PC-DOS and MS-DOS. So this project gave me an opportunity 
+to explore the implementation of a FAT-based system.
 
 # Library functions
 
