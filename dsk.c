@@ -541,27 +541,61 @@ static int find_first_free_granule(DSK_Drive *drv)
 }
 
 //------------------------------------
-//
+// Convert host line endings to CoCo CR format (for adding files to DSK)
+// Handles CRLF -> CR and LF -> CR. Returns new size (may shrink).
 //------------------------------------
-void translate_crlf_read(char *blk, size_t size)
+size_t translate_to_coco(char *blk, size_t size)
 {
-    for (int i = 0; i < size; i++)
+    size_t j = 0;
+    for (size_t i = 0; i < size; i++)
     {
-        if (blk[i] == 0x0a)
-            blk[i] = 0x0d;
+        if (blk[i] == 0x0d && i + 1 < size && blk[i + 1] == 0x0a)
+        {
+            // CRLF -> CR (skip the LF)
+            blk[j++] = 0x0d;
+            i++;  // skip LF
+        }
+        else if (blk[i] == 0x0a)
+        {
+            // standalone LF -> CR
+            blk[j++] = 0x0d;
+        }
+        else
+        {
+            blk[j++] = blk[i];
+        }
     }
+    return j;
 }
 
 //------------------------------------
-//
+// Convert CoCo CR to host line endings (for extracting files from DSK)
+// On Windows: CR -> CRLF (expands). On Unix: CR -> LF (same size).
+// dst must have room for expansion (up to 2x size on Windows).
+// Returns new size.
 //------------------------------------
-void translate_crlf_write(char *blk, size_t size)
+size_t translate_from_coco(char *dst, const char *src, size_t size)
 {
-    for (int i = 0; i < size; i++)
+    size_t j = 0;
+    for (size_t i = 0; i < size; i++)
     {
-        if (blk[i] == 0x0d)
-            blk[i] = 0x0a;
+        if (src[i] == 0x0d)
+        {
+#ifdef _WIN32
+            // CR -> CRLF on Windows
+            dst[j++] = 0x0d;
+            dst[j++] = 0x0a;
+#else
+            // CR -> LF on Unix
+            dst[j++] = 0x0a;
+#endif
+        }
+        else
+        {
+            dst[j++] = src[i];
+        }
     }
+    return j;
 }
 
 //------------------------------------
@@ -569,8 +603,6 @@ void translate_crlf_write(char *blk, size_t size)
 //------------------------------------
 int dsk_add_file(DSK_Drive *drv, const char *filename, DSK_OPEN_MODE mode, DSK_FILE_TYPE type)
 {
-    char *pmode = "rb";
-    char sector_data[DSK_BYTES_DATA_PER_SECTOR];
     char dest_filename[DSK_MAX_FILENAME + DSK_MAX_EXT + 2];
 
     assert(drv && drv->fp);
@@ -585,20 +617,15 @@ int dsk_add_file(DSK_Drive *drv, const char *filename, DSK_OPEN_MODE mode, DSK_F
     string_upper(dest_filename);
     DSK_TRACE("adding file '%s'\n", dest_filename);
 
-    // check filename.ext length
-    if (strlen(filename) > DSK_MAX_FILENAME + DSK_MAX_EXT + 1)
+    // check filename.ext length (check basename, not full path)
+    if (strlen(dest_filename) > DSK_MAX_FILENAME + DSK_MAX_EXT + 1)
     {
         dsk_printf("filename '%s' is too long.\n", dest_filename);
         return E_FAIL;
     }
 
-    // open the input file
-#ifndef _WIN32
-    if (mode == DSK_MODE_ASCII)
-        pmode = "rt";
-#endif
-
-    FILE *fin = fopen(filename, pmode);
+    // always open in binary mode for consistent behavior
+    FILE *fin = fopen(filename, "rb");
     if (!fin)
     {
         dsk_printf("file not found.\n");
@@ -610,11 +637,29 @@ int dsk_add_file(DSK_Drive *drv, const char *filename, DSK_OPEN_MODE mode, DSK_F
     long fin_size = ftell(fin);
     fseek(fin, 0, SEEK_SET);
 
-    // check that disk has space for file
-    if (fin_size > dsk_free_bytes(drv))
+    // read entire file into memory
+    char *file_data = malloc(fin_size);
+    if (!file_data)
+    {
+        dsk_printf("out of memory.\n");
+        fclose(fin);
+        return E_FAIL;
+    }
+    fread(file_data, 1, fin_size, fin);
+    fclose(fin);
+
+    // translate line endings for ASCII mode
+    long data_size = fin_size;
+    if (mode == DSK_MODE_ASCII)
+    {
+        data_size = (long)translate_to_coco(file_data, fin_size);
+    }
+
+    // check that disk has space for translated file
+    if (data_size > dsk_free_bytes(drv))
     {
         dsk_printf("out of space.\n");
-        fclose(fin);
+        free(file_data);
         return E_FAIL;
     }
 
@@ -623,7 +668,7 @@ int dsk_add_file(DSK_Drive *drv, const char *filename, DSK_OPEN_MODE mode, DSK_F
     if (dirent)
     {
         dsk_printf("file already exists.\n");
-        fclose(fin);
+        free(file_data);
         return E_FAIL;
     }
 
@@ -632,7 +677,7 @@ int dsk_add_file(DSK_Drive *drv, const char *filename, DSK_OPEN_MODE mode, DSK_F
     if (!dirent)
     {
         dsk_printf("drive is full.\n");
-        fclose(fin);
+        free(file_data);
         return E_FAIL;
     }
 
@@ -652,13 +697,13 @@ int dsk_add_file(DSK_Drive *drv, const char *filename, DSK_OPEN_MODE mode, DSK_F
     // copy in the extension, left justified, padded with spaces
     for (int i = 0; i < DSK_MAX_EXT; i++)
     {
-        if (i < strlen(ext))
+        if (ext && i < strlen(ext))
             dirent->ext[i] = ext[i];
         else
             dirent->ext[i] = ' ';
     }
 
-    DSK_TRACE("%s -> file: %s, ext: %s\n", dest_filename, basefile, ext);
+    DSK_TRACE("%s -> file: %s, ext: %s\n", dest_filename, basefile, ext ? ext : "");
     
     dirent->binary_ascii = (mode == DSK_MODE_ASCII) ? DSK_ENCODING_ASCII : DSK_ENCODING_BINARY;
     dirent->type = type;
@@ -667,55 +712,55 @@ int dsk_add_file(DSK_Drive *drv, const char *filename, DSK_OPEN_MODE mode, DSK_F
     int next_gran, gran = find_first_free_granule(drv);
     dirent->first_granule = gran;
 
+    // write data to DSK from translated buffer
+    char *data_ptr = file_data;
+    long remaining = data_size;
+
     // copy full granule data
-    for (; fin_size >= DSK_BYTES_PER_GRANULE; fin_size -= DSK_BYTES_PER_GRANULE)
+    for (; remaining >= DSK_BYTES_PER_GRANULE; remaining -= DSK_BYTES_PER_GRANULE)
     {
         dsk_seek_to_granule(drv, gran);
         for (int sector = 0; sector < DSK_SECTORS_PER_GRANULE; sector++)
         {
-            fread(sector_data, sizeof(sector_data), 1, fin);
-            if (dirent->binary_ascii == DSK_ENCODING_ASCII)
-                translate_crlf_read(sector_data, sizeof(sector_data));
-            fwrite(sector_data, sizeof(sector_data), 1, drv->fp);
+            fwrite(data_ptr, DSK_BYTES_DATA_PER_SECTOR, 1, drv->fp);
+            data_ptr += DSK_BYTES_DATA_PER_SECTOR;
         }
 
-        // temporarily mark this granule as used find chooses next avail
+        // temporarily mark this granule as used so find chooses next avail
         drv->fat.granule_map[gran] = 0xC0;
 
         // find next available granule
         next_gran = find_first_free_granule(drv);
 
-        // patch current granule point to next granule
+        // patch current granule to point to next granule
         drv->fat.granule_map[gran] = next_gran;
         gran = next_gran;
     }
 
-    // find number of sectors used
-    int tail_sectors = fin_size / DSK_BYTES_DATA_PER_SECTOR;
-    int extra_bytes = fin_size % DSK_BYTES_DATA_PER_SECTOR;
-    DSK_TRACE("fin_size: %d, tail sectors: %d, extra bytes: %d\n", fin_size, tail_sectors, extra_bytes);
+    // find number of sectors used in last granule
+    int tail_sectors = remaining / DSK_BYTES_DATA_PER_SECTOR;
+    int extra_bytes = remaining % DSK_BYTES_DATA_PER_SECTOR;
+    DSK_TRACE("data_size: %ld, tail sectors: %d, extra bytes: %d\n", data_size, tail_sectors, extra_bytes);
 
     dsk_seek_to_granule(drv, gran);
     for (int sector = 0; sector < tail_sectors; sector++)
     {
-        fread(sector_data, sizeof(sector_data), 1, fin);
-        if (dirent->binary_ascii == DSK_ENCODING_ASCII)
-            translate_crlf_read(sector_data, sizeof(sector_data));
-        fwrite(sector_data, sizeof(sector_data), 1, drv->fp);
+        fwrite(data_ptr, DSK_BYTES_DATA_PER_SECTOR, 1, drv->fp);
+        data_ptr += DSK_BYTES_DATA_PER_SECTOR;
     }
 
-    fread(sector_data, extra_bytes, 1, fin);
-    if (dirent->binary_ascii == DSK_ENCODING_ASCII)
-        translate_crlf_read(sector_data, extra_bytes);
-    fwrite(sector_data, extra_bytes, 1, drv->fp);
+    if (extra_bytes > 0)
+    {
+        fwrite(data_ptr, extra_bytes, 1, drv->fp);
+    }
     
     // mark last granule
     drv->fat.granule_map[gran] = 0xC0 + tail_sectors + (extra_bytes > 0);
 
-    // update bytes in last sector, respecting endianess
+    // update bytes in last sector, respecting endianness
     dirent->bytes_in_last_sector = htons(extra_bytes);
 
-    fclose(fin);
+    free(file_data);
 
     // update DSK image
     drv->dirty_flag = 1;
@@ -730,6 +775,8 @@ int dsk_add_file(DSK_Drive *drv, const char *filename, DSK_OPEN_MODE mode, DSK_F
 int dsk_extract_file(DSK_Drive *drv, const char *filename)
 {
     char sector_data[DSK_BYTES_DATA_PER_SECTOR];
+    // on Windows, CR->CRLF can double the size
+    char output_data[DSK_BYTES_DATA_PER_SECTOR * 2];
 
     assert(drv && drv->fp);
     if (!drv || !drv->fp)
@@ -738,9 +785,6 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
         return E_FAIL;
     }
 
-    // TODO - ensure upper case?
-//    string_upper(filename);
-
     DSK_DirEntry *dirent = find_file_in_dir(drv, filename);
     if (!dirent)
     {
@@ -748,21 +792,15 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
         return E_FAIL;
     }
 
-    // open the output file
-    // open as text if ascii is set?
-    char* pmode = "wb";
-
-#ifndef _WIN32
-    if (dirent->binary_ascii == DSK_ENCODING_ASCII)
-        pmode = "wt";
-#endif
-
-    FILE *fout = fopen(filename, pmode);
+    // always open in binary mode for consistent behavior
+    FILE *fout = fopen(filename, "wb");
     if (!fout)
     {
-        dsk_printf("file not found.\n");
+        dsk_printf("cannot create file.\n");
         return E_FAIL;
     }
+
+    int is_ascii = (dirent->binary_ascii == DSK_ENCODING_ASCII);
 
     // walk the granules
     int gran = dirent->first_granule;
@@ -780,9 +818,15 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
         for (int i = 0; i < DSK_SECTORS_PER_GRANULE; i++)
         {
             fread(sector_data, DSK_BYTES_DATA_PER_SECTOR, 1, drv->fp);
-            if (dirent->binary_ascii == DSK_ENCODING_ASCII)
-                translate_crlf_write(sector_data, DSK_BYTES_DATA_PER_SECTOR);
-            fwrite(sector_data, DSK_BYTES_DATA_PER_SECTOR, 1, fout);
+            if (is_ascii)
+            {
+                size_t out_size = translate_from_coco(output_data, sector_data, DSK_BYTES_DATA_PER_SECTOR);
+                fwrite(output_data, out_size, 1, fout);
+            }
+            else
+            {
+                fwrite(sector_data, DSK_BYTES_DATA_PER_SECTOR, 1, fout);
+            }
         }
 
         // get next granule
@@ -804,9 +848,15 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
     for (int i = 0; i < tail_sectors; i++)
     {
         fread(sector_data, DSK_BYTES_DATA_PER_SECTOR, 1, drv->fp);
-        if (dirent->binary_ascii == DSK_ENCODING_ASCII)
-            translate_crlf_write(sector_data, DSK_BYTES_DATA_PER_SECTOR);
-        fwrite(sector_data, DSK_BYTES_DATA_PER_SECTOR, 1, fout);
+        if (is_ascii)
+        {
+            size_t out_size = translate_from_coco(output_data, sector_data, DSK_BYTES_DATA_PER_SECTOR);
+            fwrite(output_data, out_size, 1, fout);
+        }
+        else
+        {
+            fwrite(sector_data, DSK_BYTES_DATA_PER_SECTOR, 1, fout);
+        }
     }
 
     // extract partial sector
@@ -815,9 +865,15 @@ int dsk_extract_file(DSK_Drive *drv, const char *filename)
     if (bytes_in_last_sector)
     {
         fread(sector_data, bytes_in_last_sector, 1, drv->fp);
-        if (dirent->binary_ascii == DSK_ENCODING_ASCII)
-            translate_crlf_write(sector_data, bytes_in_last_sector);
-        fwrite(sector_data, bytes_in_last_sector, 1, fout);
+        if (is_ascii)
+        {
+            size_t out_size = translate_from_coco(output_data, sector_data, bytes_in_last_sector);
+            fwrite(output_data, out_size, 1, fout);
+        }
+        else
+        {
+            fwrite(sector_data, bytes_in_last_sector, 1, fout);
+        }
     }
 
     fclose(fout);
